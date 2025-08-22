@@ -1,0 +1,34 @@
+# Node.js / Common
+node_modules/
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Frontend (Vite) specific
+# Ignore build output
+/Frontend/IMOS/dist
+/Frontend/IMOS/.vite
+
+# Log files
+/Frontend/IMOS/npm-debug.log*
+/Frontend/IMOS/yarn-debug.log*
+/Frontend/IMOS/yarn-error.log*
+
+# Backend specific
+# Add any backend-specific folders to ignore here, e.g., build output if you have one
+# /Backend/build

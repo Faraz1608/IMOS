@@ -1,0 +1,27 @@
+{
+  "name": "imos",
+  "version": "1.0.0",
+  "description": "\"Storage: Mapping the inventory to reduce ICC and utilize space\"",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/index.js"
+  },
+  "author": "Faraz Shaikh",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.17.1",
+    "nodemon": "^3.1.10",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "nodeman": "^1.1.2"
+  }
+}
