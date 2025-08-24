@@ -6,11 +6,13 @@ const useAuthStore = create(
     (set) => ({
       token: null,
       user: null,
+      inventoryLastUpdated: null, // Add this new state
       login: (token, user) => set({ token, user }),
       logout: () => set({ token: null, user: null }),
+      triggerInventoryUpdate: () => set({ inventoryLastUpdated: new Date() }), // Add this action
     }),
     {
-      name: 'auth-storage', // name of the item in localStorage
+      name: 'auth-storage',
     }
   )
 );

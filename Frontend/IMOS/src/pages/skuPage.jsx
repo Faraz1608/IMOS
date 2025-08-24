@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Import Link
 import useAuthStore from '../store/authStore';
 import { getSkus, createSku, searchSkus } from '../services/skuService';
 import Modal from '../components/modal.jsx';
@@ -9,12 +10,12 @@ const SkuPage = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSkuData, setNewSkuData] = useState({ skuCode: '', name: '' });
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchHistory, setSearchHistory] = useState(
     JSON.parse(localStorage.getItem('skuSearchHistory')) || []
   );
-  
+
   const { token } = useAuthStore();
 
   const fetchAllSkus = async () => {
@@ -117,9 +118,14 @@ const SkuPage = () => {
           <ul className="divide-y divide-gray-200">
             {filteredSkus.length > 0 ? (
               filteredSkus.map((sku) => (
-                <li key={sku._id} className="p-4">
-                  <p className="font-mono text-lg">{sku.skuCode}</p>
-                  <p className="text-sm text-gray-600">{sku.name}</p>
+                <li key={sku._id} className="p-4 flex justify-between items-center hover:bg-gray-50">
+                  <div>
+                    <p className="font-mono text-lg">{sku.skuCode}</p>
+                    <p className="text-sm text-gray-600">{sku.name}</p>
+                  </div>
+                  <Link to={`/skus/${sku._id}`} className="px-3 py-1 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                    Edit
+                  </Link>
                 </li>
               ))
             ) : (
@@ -158,9 +164,3 @@ const SkuPage = () => {
 };
 
 export default SkuPage;
-
-
-
-
-
-

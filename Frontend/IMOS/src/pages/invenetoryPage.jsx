@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
 import { getLayouts } from '../services/layoutService.js';
 import { getLocationsByLayout } from '../services/locationService.js';
@@ -6,7 +7,7 @@ import { getSkus } from '../services/skuService.js';
 import { setInventory } from '../services/inventoryService.js';
 
 const InventoryPage = () => {
-  const { token } = useAuthStore();
+  const { token, triggerInventoryUpdate } = useAuthStore(); // Get the trigger function here
   
   // Data states
   const [layouts, setLayouts] = useState([]);
@@ -29,6 +30,7 @@ const InventoryPage = () => {
         setSkus(skusRes.data);
       } catch (error) {
         console.error("Failed to fetch initial data", error);
+        toast.error("Could not load initial data.");
       }
     };
     fetchInitialData();
@@ -52,7 +54,7 @@ const InventoryPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSku || !selectedLocation || quantity < 0) {
-      alert('Please select an SKU, a location, and enter a valid quantity.');
+      toast.error('Please select an SKU, a location, and enter a valid quantity.');
       return;
     }
     try {
@@ -61,14 +63,17 @@ const InventoryPage = () => {
         locationId: selectedLocation, 
         quantity 
       }, token);
-      alert('Inventory updated successfully!');
+
+      toast.success('Inventory updated successfully!');
+      triggerInventoryUpdate(); // This will now work correctly
+      
       // Reset form
       setSelectedLocation('');
       setSelectedSku('');
       setQuantity(0);
     } catch (error) {
       console.error('Failed to set inventory:', error);
-      alert('Failed to set inventory.');
+      toast.error('Failed to set inventory.');
     }
   };
 

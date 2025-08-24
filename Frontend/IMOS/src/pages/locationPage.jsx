@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import toast from 'react-hot-toast'; // Import toast
 import useAuthStore from '../store/authStore.js';
 import { getLocationsByLayout, createLocation } from '../services/locationService.js';
 import Modal from '../components/modal.jsx';
@@ -19,6 +20,7 @@ const LocationsPage = () => {
       setLocations(response.data);
     } catch (error) {
       console.error('Failed to fetch locations:', error);
+      toast.error('Could not fetch locations.'); // Add feedback
     } finally {
       setLoading(false);
     }
@@ -32,12 +34,13 @@ const LocationsPage = () => {
     e.preventDefault();
     try {
       await createLocation(layoutId, { locationCode: newLocationCode }, token);
+      toast.success('Location created successfully!'); // Add success feedback
       setIsModalOpen(false);
       setNewLocationCode('');
       fetchLocations(); // Refresh the list
     } catch (error)      {
       console.error('Failed to create location:', error);
-      alert('Failed to create location.');
+      toast.error('Failed to create location.'); // Replace alert
     }
   };
 

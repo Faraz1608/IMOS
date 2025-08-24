@@ -17,3 +17,13 @@ export const searchSkus = (query, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+export const getSkuById = (id, token) => {
+  return api.get(`/skus/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+export const updateSku = (id, skuData, token) => {
+  return api.put(`/skus/${id}`, skuData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};

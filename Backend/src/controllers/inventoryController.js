@@ -45,3 +45,49 @@ export const getInventoryBySKU = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+export const adjustInventory = async (req, res) => {
+  try {
+    const { skuId, locationId, adjustment } = req.body;
+    if (!skuId || !locationId || !adjustment) {
+      return res.status(400).json({ message: 'SKU, location, and adjustment value are required' });
+    }
+
+    // Use MongoDB's $inc operator to safely increment/decrement the quantity
+    const updatedInventory = await Inventory.findOneAndUpdate(
+      { sku: skuId, location: locationId },
+      { $inc: { quantity: adjustment } },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedInventory) {
+      return res.status(404).json({ message: 'Inventory record not found. Use POST to create it first.' });
+    }
+
+    res.status(200).json(updatedInventory);
+  } catch (error) {
+    console.error('Error adjusting inventory:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Delete an inventory record
+// @route   DELETE /api/inventory
+export const deleteInventory = async (req, res) => {
+  try {
+    const { skuId, locationId } = req.body;
+    if (!skuId || !locationId) {
+      return res.status(400).json({ message: 'SKU and location are required' });
+    }
+
+    const result = await Inventory.deleteOne({ sku: skuId, location: locationId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Inventory record not found.' });
+    }
+
+    res.status(200).json({ message: 'Inventory record deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting inventory:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

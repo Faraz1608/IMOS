@@ -13,6 +13,8 @@ import OptimizationsPage from './pages/optimizationPage.jsx';
 import LayoutDetailPage from './pages/layoutDeatilPage.jsx';
 import SearchPage from './pages/searchPage.jsx';
 import RegisterPage from './pages/registerPage.jsx';
+import SkuDetailPage from './pages/skuDetailPage.jsx';
+
 function App() {
   return (
     <Router>
@@ -34,6 +36,7 @@ function App() {
           <Route path="layouts/:id" element={<LayoutDetailPage />} />
           <Route path="layouts/:layoutId/locations" element={<LocationsPage />} />
           <Route path="skus" element={<SkuPage />} />
+          <Route path="skus/:id" element={<SkuDetailPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="inventory/view" element={<InventoryViewPage />} />
           <Route path="optimizations" element={<OptimizationsPage />} />

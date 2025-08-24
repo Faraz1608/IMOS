@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast'; // Import toast
 import useAuthStore from '../store/authStore.js';
 import { getLayouts, createLayout } from '../services/layoutService.js';
 import Modal from '../components/modal.jsx';
@@ -19,6 +20,7 @@ const LayoutsPage = () => {
       setLayouts(response.data);
     } catch (error) {
       console.error('Failed to fetch layouts:', error);
+      toast.error('Could not fetch layouts.'); // Add feedback here
     } finally {
       setLoading(false);
     }
@@ -32,13 +34,14 @@ const LayoutsPage = () => {
     e.preventDefault();
     try {
       await createLayout({ name: newLayoutName, description: newLayoutDesc }, token);
+      toast.success('Layout created successfully!'); // Add success feedback
       setIsModalOpen(false);
       setNewLayoutName('');
       setNewLayoutDesc('');
       fetchLayouts(); // Refresh the list
     } catch (error) {
       console.error('Failed to create layout:', error);
-      alert('Failed to create layout.');
+      toast.error('Failed to create layout.'); // Replace alert with toast
     }
   };
 
