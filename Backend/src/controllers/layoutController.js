@@ -1,6 +1,6 @@
 import Layout from '../models/Layout.js';
 import Location from '../models/Location.js';
-import Inventory from '../models/Inventory.model.js';
+import Inventory from '../models/Inventory.js';
 
 // @desc    Get all layouts for the logged-in user
 // @route   GET /api/layouts

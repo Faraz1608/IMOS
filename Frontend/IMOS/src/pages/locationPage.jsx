@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import toast from 'react-hot-toast'; // Import toast
+import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
-import { getLocationsByLayout, createLocation } from '../services/locationService.js';
+import { getLocationsByLayout, createLocation, updateLocation, deleteLocation } from '../services/locationService.js';
 import Modal from '../components/modal.jsx';
+import { FiPlus, FiEdit3, FiTrash2 } from 'react-icons/fi';
 
 const LocationsPage = () => {
   const { layoutId } = useParams();
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newLocationCode, setNewLocationCode] = useState('');
+  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationCode, setLocationCode] = useState('');
   const { token } = useAuthStore();
 
   const fetchLocations = async () => {
@@ -19,8 +22,7 @@ const LocationsPage = () => {
       const response = await getLocationsByLayout(layoutId, token);
       setLocations(response.data);
     } catch (error) {
-      console.error('Failed to fetch locations:', error);
-      toast.error('Could not fetch locations.'); // Add feedback
+      toast.error('Could not fetch locations.');
     } finally {
       setLoading(false);
     }
@@ -30,71 +32,95 @@ const LocationsPage = () => {
     fetchLocations();
   }, [layoutId, token]);
 
-  const handleAddLocation = async (e) => {
+  const openAddModal = () => {
+    setModalMode('add');
+    setLocationCode('');
+    setCurrentLocation(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (location) => {
+    setModalMode('edit');
+    setLocationCode(location.locationCode);
+    setCurrentLocation(location);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSubmit = async (e) => {
     e.preventDefault();
+    const action = modalMode === 'add'
+      ? createLocation(layoutId, { locationCode }, token)
+      : updateLocation(layoutId, currentLocation._id, { locationCode }, token);
+
     try {
-      await createLocation(layoutId, { locationCode: newLocationCode }, token);
-      toast.success('Location created successfully!'); // Add success feedback
+      await action;
+      toast.success(`Location ${modalMode === 'add' ? 'created' : 'updated'} successfully!`);
       setIsModalOpen(false);
-      setNewLocationCode('');
-      fetchLocations(); // Refresh the list
-    } catch (error)      {
-      console.error('Failed to create location:', error);
-      toast.error('Failed to create location.'); // Replace alert
+      fetchLocations();
+    } catch (error) {
+      toast.error(`Failed to ${modalMode} location.`);
     }
   };
 
-  if (loading) {
-    return <div>Loading locations...</div>;
-  }
+  const handleDelete = async (locationId) => {
+    if (window.confirm('Are you sure you want to delete this location?')) {
+      try {
+        await deleteLocation(layoutId, locationId, token);
+        toast.success('Location deleted successfully.');
+        fetchLocations();
+      } catch (error) {
+        toast.error('Failed to delete location.');
+      }
+    }
+  };
 
   return (
-    <div>
+    <div className="bg-white p-6 rounded-2xl shadow-lg">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Locations</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Locations</h1>
         <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          onClick={openAddModal}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
         >
-          Add New Location
+          <FiPlus /> Add Location
         </button>
       </div>
-      <div className="bg-white shadow rounded-lg">
-        <ul className="divide-y divide-gray-200">
-          {locations.length > 0 ? (
+      
+      <div className="space-y-3">
+        {loading ? <p>Loading...</p> : (
+          locations.length > 0 ? (
             locations.map((location) => (
-              <li key={location._id} className="p-4">
-                <p className="text-lg font-mono">{location.locationCode}</p>
-              </li>
+              <div key={location._id} className="p-4 bg-gray-50 rounded-lg flex justify-between items-center border">
+                <p className="font-mono text-gray-800">{location.locationCode}</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => openEditModal(location)} className="p-2 text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200">
+                    <FiEdit3 />
+                  </button>
+                  <button onClick={() => handleDelete(location._id)} className="p-2 text-red-600 bg-red-100 rounded-lg hover:bg-red-200">
+                    <FiTrash2 />
+                  </button>
+                </div>
+              </div>
             ))
           ) : (
-            <li className="p-4 text-center text-gray-500">
-              No locations found. Click "Add New Location" to get started.
-            </li>
-          )}
-        </ul>
+            <p className="text-center text-gray-500 py-8">No locations found.</p>
+          )
+        )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Location">
-        <form onSubmit={handleAddLocation}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalMode === 'add' ? 'Create New Location' : 'Edit Location'}>
+        <form onSubmit={handleModalSubmit}>
           <div className="mb-4">
-            <label htmlFor="locationCode" className="block text-sm font-medium text-gray-700">Location Code (e.g., A01-R01-S01)</label>
+            <label htmlFor="locationCode" className="block text-sm font-medium mb-1">Location Code</label>
             <input
-              type="text"
-              id="locationCode"
-              value={newLocationCode}
-              onChange={(e) => setNewLocationCode(e.target.value)}
-              required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              type="text" id="locationCode" value={locationCode}
+              onChange={(e) => setLocationCode(e.target.value)}
+              required className="w-full p-2 border rounded-md"
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">
-              Cancel
-            </button>
-            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-              Create
-            </button>
+          <div className="flex justify-end gap-2 mt-6">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg">{modalMode === 'add' ? 'Create' : 'Save Changes'}</button>
           </div>
         </form>
       </Modal>

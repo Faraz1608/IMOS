@@ -1,5 +1,9 @@
 import api from './api';
-
+export const getInventory = (token) => {
+  return api.get('/inventory', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
 export const setInventory = (inventoryData, token) => {
   return api.post('/inventory', inventoryData, {
     headers: { Authorization: `Bearer ${token}` },

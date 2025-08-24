@@ -1,6 +1,6 @@
 import Sku from '../models/Sku.js';
 import Location from '../models/Location.js';
-import Inventory from '../models/Inventory.model.js';
+import Inventory from '../models/Inventory.js';
 
 // @desc    Run ABC analysis on all SKUs
 // @route   POST /api/optimize/abc-analysis

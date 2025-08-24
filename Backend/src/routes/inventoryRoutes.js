@@ -1,6 +1,7 @@
 import express from 'express';
 // Add getInventoryByLocation to this import list
 import {
+  getInventory,
   setInventory,
   getInventoryByLocation,
   getInventoryBySKU,
@@ -12,7 +13,7 @@ import { protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 router.use(protect);
 
-router.route('/').post(setInventory).put(adjustInventory).delete(deleteInventory);
+router.route('/').get(getInventory).post(setInventory).put(adjustInventory).delete(deleteInventory);
 router.route('/location/:locationId').get(getInventoryByLocation);
 router.route('/sku/:skuId').get(getInventoryBySKU);
 

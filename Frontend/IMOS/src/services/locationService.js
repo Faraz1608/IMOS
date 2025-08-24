@@ -10,3 +10,14 @@ export const createLocation = (layoutId, locationData, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+export const updateLocation = (layoutId, locationId, locationData, token) => {
+  return api.put(`/layouts/${layoutId}/locations/${locationId}`, locationData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const deleteLocation = (layoutId, locationId, token) => {
+  return api.delete(`/layouts/${layoutId}/locations/${locationId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};

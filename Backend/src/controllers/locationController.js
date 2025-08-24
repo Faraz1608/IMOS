@@ -45,3 +45,38 @@ export const addLocation = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+export const updateLocation = async (req, res) => {
+  try {
+    const { locationCode } = req.body;
+    let location = await Location.findById(req.params.locationId);
+
+    if (!location || location.createdBy.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    location.locationCode = locationCode || location.locationCode;
+    await location.save();
+    res.status(200).json(location);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Delete a location
+// @route   DELETE /api/layouts/:layoutId/locations/:locationId
+export const deleteLocation = async (req, res) => {
+  try {
+    const location = await Location.findById(req.params.locationId);
+
+    if (!location || location.createdBy.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+    
+    // Optional: Add logic here to check if inventory exists at this location before deleting.
+    
+    await location.deleteOne();
+    res.status(200).json({ message: 'Location removed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

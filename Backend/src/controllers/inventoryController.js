@@ -1,9 +1,22 @@
-import Inventory from '../models/Inventory.model.js';
+import Inventory from '../models/Inventory.js';
 import Sku from '../models/Sku.js'; // Ensure correct casing
 import Location from '../models/Location.js';
 
 // @desc    Add or update inventory for an SKU at a location
 // @route   POST /api/inventory
+// @desc    Get all inventory records for the user
+// @route   GET /api/inventory
+export const getInventory = async (req, res) => {
+  try {
+    const inventory = await Inventory.find({ createdBy: req.user.id })
+      .populate({ path: 'sku', select: 'skuCode name' })
+      .populate({ path: 'location', select: 'locationCode' });
+    res.status(200).json(inventory);
+  } catch (error) {
+    console.error('Error getting inventory:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
 export const setInventory = async (req, res) => {
   try {
     const { skuId, locationId, quantity } = req.body;
