@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { getInventory, setInventory } from '../services/inventoryService';
+import { getInventory, setInventory, adjustInventory, deleteInventory } from '../services/inventoryService';
 import { getSkus } from '../services/skuService';
 import { getLayouts } from '../services/layoutService';
 import { getLocationsByLayout } from '../services/locationService';
 import Modal from '../components/modal.jsx';
-import { FiPlus, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const InventoryPage = () => {
   const { token, triggerInventoryUpdate, inventoryLastUpdated } = useAuthStore();
@@ -28,6 +28,11 @@ const InventoryPage = () => {
     selectedSku: '',
     quantity: 0,
   });
+
+  // State for the "Edit Inventory" modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState(null);
+  const [adjustment, setAdjustment] = useState('');
 
   // --- Data Fetching ---
 
@@ -116,17 +121,51 @@ const InventoryPage = () => {
         quantity: modalForm.quantity,
       }, token);
       toast.success(`Inventory set successfully!`);
-      // console.log(`Inventory set successfully! - ${{
-      //   skuId: modalForm.selectedSku,
-      //   locationId: modalForm.selectedLocation,
-      //   quantity: modalForm.quantity,
-      // }, token}`);
       setIsModalOpen(false);
       triggerInventoryUpdate(); // Triggers a refresh of the inventory list
     } catch (error) {
       toast.error("Failed to set inventory.");
     }
   };
+
+  const openEditModal = (item) => {
+    setCurrentItem(item);
+    setAdjustment(item.quantity);
+    setIsEditModalOpen(true);
+  };
+
+   const handleAdjustSubmit = async (e) => {
+    e.preventDefault();
+    const newQuantity = parseInt(adjustment);
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      toast.error("Please enter a valid quantity.");
+      return;
+    }
+
+    try {
+      // Call the updated service function with the item's unique _id
+      await adjustInventory(currentItem._id, { quantity: newQuantity }, token);
+      toast.success('Quantity adjusted!');
+      setIsEditModalOpen(false);
+      fetchInventory(); // Refresh list
+    } catch (error) {
+      toast.error('Failed to adjust quantity.');
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (window.confirm(`Are you sure you want to remove ${item.sku.skuCode} from this location?`)) {
+      try {
+        // Call the updated service function with the item's unique _id
+        await deleteInventory(item._id, token);
+        toast.success('Inventory record removed.');
+        fetchInventory(); // Refresh list
+      } catch (error) {
+        toast.error('Failed to remove inventory.');
+      }
+    }
+  };
+
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg">
@@ -158,11 +197,12 @@ const InventoryPage = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan="4" className="text-center py-4">Loading...</td></tr>
+              <tr><td colSpan="5" className="text-center py-4">Loading...</td></tr>
             ) : (
               filteredInventory.map(item => (
                 <tr key={item._id}>
@@ -170,6 +210,10 @@ const InventoryPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{item.location?.locationCode || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.sku?.skuCode || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.quantity} units</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button onClick={() => openEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4"><FiEdit /></button>
+                    <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-900"><FiTrash2 /></button>
+                  </td>
                 </tr>
               ))
             )}
@@ -195,6 +239,26 @@ const InventoryPage = () => {
           <div className="flex justify-end gap-2 pt-4">
             <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Map SKU to Location</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Adjust Quantity for ${currentItem?.sku?.skuCode}`}>
+        <form onSubmit={handleAdjustSubmit}>
+          <div className="mb-4">
+            <label htmlFor="adjustment" className="block text-sm font-medium">Quantity</label>
+            <input
+              type="number"
+              id="adjustment"
+              value={adjustment}
+              onChange={(e) => setAdjustment(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
           </div>
         </form>
       </Modal>

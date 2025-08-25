@@ -24,3 +24,8 @@ export const updateLayout = (id, layoutData, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+export const deleteLayout = (id, token) => {
+  return api.delete(`/layouts/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};

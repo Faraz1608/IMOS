@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { getSkus, createSku, searchSkus } from '../services/skuService';
+import { getSkus, createSku, searchSkus, deleteSku } from '../services/skuService'; // Import deleteSku
 import Modal from '../components/modal.jsx';
 import { FiPlus, FiEdit3, FiTrash2 } from 'react-icons/fi';
 
@@ -56,15 +56,6 @@ const SkuPage = () => {
     }, 300);
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, allSkus, token]);
-
-  const handleSearchSubmit = (term) => {
-    if (term && !searchHistory.includes(term)) {
-      const updatedHistory = [term, ...searchHistory].slice(0, 5);
-      setSearchHistory(updatedHistory);
-      localStorage.setItem('skuSearchHistory', JSON.stringify(updatedHistory));
-    }
-    setSearchTerm(term);
-  };
   
   const handleInputChange = (e) => {
     setNewSkuData({ ...newSkuData, [e.target.name]: e.target.value });
@@ -80,6 +71,19 @@ const SkuPage = () => {
       fetchAllSkus();
     } catch (error) {
       toast.error('Failed to create SKU.');
+    }
+  };
+
+  // --- NEW FUNCTION ---
+  const handleDelete = async (skuId) => {
+    if (window.confirm('Are you sure you want to delete this SKU?')) {
+      try {
+        await deleteSku(skuId, token);
+        toast.success('SKU deleted successfully.');
+        fetchAllSkus(); // Refresh the list
+      } catch (error) {
+        toast.error('Failed to delete SKU.');
+      }
     }
   };
 
@@ -115,7 +119,7 @@ const SkuPage = () => {
                   <Link to={`/skus/${sku._id}`} className="p-2 text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200">
                     <FiEdit3 />
                   </Link>
-                  <button className="p-2 text-red-600 bg-red-100 rounded-lg hover:bg-red-200">
+                  <button onClick={() => handleDelete(sku._id)} className="p-2 text-red-600 bg-red-100 rounded-lg hover:bg-red-200">
                     <FiTrash2 />
                   </button>
                 </div>

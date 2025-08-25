@@ -27,3 +27,8 @@ export const updateSku = (id, skuData, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+export const deleteSku = (id, token) => {
+  return api.delete(`/skus/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};

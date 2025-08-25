@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast'; // Import toast
+import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
-import { getLayouts, createLayout } from '../services/layoutService.js';
+import { getLayouts, createLayout, deleteLayout } from '../services/layoutService.js';
 import Modal from '../components/modal.jsx';
+import { FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const LayoutsPage = () => {
   const [layouts, setLayouts] = useState([]);
@@ -20,7 +21,7 @@ const LayoutsPage = () => {
       setLayouts(response.data);
     } catch (error) {
       console.error('Failed to fetch layouts:', error);
-      toast.error('Could not fetch layouts.'); // Add feedback here
+      toast.error('Could not fetch layouts.');
     } finally {
       setLoading(false);
     }
@@ -34,14 +35,27 @@ const LayoutsPage = () => {
     e.preventDefault();
     try {
       await createLayout({ name: newLayoutName, description: newLayoutDesc }, token);
-      toast.success('Layout created successfully!'); // Add success feedback
+      toast.success('Layout created successfully!');
       setIsModalOpen(false);
       setNewLayoutName('');
       setNewLayoutDesc('');
       fetchLayouts(); // Refresh the list
     } catch (error) {
       console.error('Failed to create layout:', error);
-      toast.error('Failed to create layout.'); // Replace alert with toast
+      toast.error('Failed to create layout.');
+    }
+  };
+
+  const handleDeleteLayout = async (layoutId) => {
+    if (window.confirm('Are you sure you want to delete this layout? This action cannot be undone.')) {
+      try {
+        await deleteLayout(layoutId, token);
+        toast.success('Layout deleted successfully!');
+        fetchLayouts(); // Refresh the list
+      } catch (error) {
+        console.error('Failed to delete layout:', error);
+        toast.error('Failed to delete layout.');
+      }
     }
   };
 
@@ -69,9 +83,14 @@ const LayoutsPage = () => {
                     <Link to={`/layouts/${layout._id}/locations`} className="text-lg font-medium hover:underline">{layout.name}</Link>
                     <p className="text-sm text-gray-500">{layout.description}</p>
                   </div>
-                  <Link to={`/layouts/${layout._id}`} className="px-3 py-1 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
-                    Edit
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link to={`/layouts/${layout._id}`} className="p-2 text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200">
+                      <FiEdit />
+                    </Link>
+                    <button onClick={() => handleDeleteLayout(layout._id)} className="p-2 text-red-600 bg-red-100 rounded-lg hover:bg-red-200">
+                      <FiTrash2 />
+                    </button>
+                  </div>
                 </li>
               ))
             ) : (
