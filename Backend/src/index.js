@@ -1,6 +1,8 @@
 import express from 'express';
 import 'dotenv/config';
 import cors from 'cors';
+import http from 'http'; // Import http
+import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import layoutRoutes from './routes/layoutRoutes.js';
@@ -11,10 +13,32 @@ import searchRoutes from './routes/searchRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js'
+
 connectDB();
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+const server = http.createServer(app); // Create an HTTP server from the Express app
+const io = new Server(server, { // Attach socket.io to the server
+  cors: {
+    origin: "http://localhost:5173", // Your frontend URL
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('A user connected');
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // --- API ROUTES ---
 app.use('/api/auth', authRoutes);
@@ -26,6 +50,8 @@ app.use('/api/optimize', optimizationRoutes); // Add optimization routes
 app.use('/api/search', searchRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 7000;
 app.listen(PORT, () => {

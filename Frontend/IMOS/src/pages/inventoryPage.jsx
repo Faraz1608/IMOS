@@ -7,56 +7,58 @@ import { getLayouts } from '../services/layoutService';
 import { getLocationsByLayout } from '../services/locationService';
 import Modal from '../components/modal.jsx';
 import { FiPlus, FiSearch, FiEdit, FiTrash2 } from 'react-icons/fi';
-
+import io from 'socket.io-client';
 const InventoryPage = () => {
-  const { token, triggerInventoryUpdate, inventoryLastUpdated } = useAuthStore();
-  
-  // Data for the main inventory table
-  const [inventory, setNewInventory] = useState([]);
+  const { token, inventoryLastUpdated } = useAuthStore();
+  const [inventory, setNewInventory] = useState([]); // Corrected to setNewInventory
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // State for the "Set Inventory" modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [layouts, setLayouts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [skus, setSkus] = useState([]);
-  const [modalForm, setModalForm] = useState({
-    selectedLayout: '',
-    selectedLocation: '',
-    selectedSku: '',
-    quantity: 0,
-  });
-
-  // State for the "Edit Inventory" modal
+  const [modalForm, setModalForm] = useState({ selectedLayout: '', selectedLocation: '', selectedSku: '', quantity: 0 });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [adjustment, setAdjustment] = useState('');
 
-  // --- Data Fetching ---
+  useEffect(() => {
+  const socket = io('http://localhost:7000'); // Your backend URL
 
-  // Fetches the main inventory list for the table
+  socket.on('connect', () => {
+    console.log('Connected to WebSocket server');
+  });
+
+  // Listen for the 'inventory_updated' event
+  socket.on('inventory_updated', () => {
+    toast('Inventory has been updated by another user.', { icon: '🔄' });
+    fetchInventory(); // Re-fetch the inventory list
+  });
+
+  // Clean up the connection when the component unmounts
+  return () => {
+    socket.disconnect();
+  };
+}, []);
   const fetchInventory = async () => {
     try {
       setLoading(true);
       const res = await getInventory(token);
-      setNewInventory(Array.isArray(res.data) ? res.data : []);
-      setFilteredInventory(Array.isArray(res.data) ? res.data : []);
+      const inventoryData = Array.isArray(res.data) ? res.data : [];
+      setNewInventory(inventoryData); // Corrected to setNewInventory
+      setFilteredInventory(inventoryData);
     } catch (error) {
       toast.error("Could not fetch inventory.");
-      setNewInventory({});
+      setNewInventory([]); // Corrected to setNewInventory
       setFilteredInventory([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchInventory();
-  }, [token, inventoryLastUpdated]);
+  useEffect(() => { fetchInventory(); }, [token, inventoryLastUpdated]);
 
-  // Fetches the necessary data (layouts and SKUs) for the modal's dropdowns
   useEffect(() => {
     if (isModalOpen) {
       const fetchModalData = async () => {
@@ -65,153 +67,137 @@ const InventoryPage = () => {
           setLayouts(layoutsRes.data);
           const skusRes = await getSkus(token);
           setSkus(skusRes.data);
-        } catch (error) {
-          toast.error("Could not load data for the form.");
-        }
+        } catch (error) { toast.error("Could not load data for the form."); }
       };
       fetchModalData();
     }
   }, [isModalOpen, token]);
-  
-  // Fetches the locations for the modal's dropdown when a layout is selected
+
   useEffect(() => {
     if (modalForm.selectedLayout) {
       const fetchLocations = async () => {
         try {
-            const res = await getLocationsByLayout(modalForm.selectedLayout, token);
-            setLocations(res.data);
-        } catch(error){
-            console.error("Failed to fetch locations", error)
+          const res = await getLocationsByLayout(modalForm.selectedLayout, token);
+          setLocations(res.data || []);
+        } catch (error) {
+          console.error("Failed to fetch locations", error);
+          setLocations([]);
         }
       };
       fetchLocations();
+    } else {
+      setLocations([]);
     }
   }, [modalForm.selectedLayout, token]);
 
-
-  // --- Event Handlers ---
-
-  // Handles filtering the main inventory table as the user types
   useEffect(() => {
-    if (!Array.isArray(inventory)) return;
+    if (!Array.isArray(inventory)) {
+      setFilteredInventory([]);
+      return;
+    }
     const results = inventory.filter(item =>
-      item.sku?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku?.skuCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location?.locationCode.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.sku?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.sku?.skuCode?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.location?.locationCode?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
     setFilteredInventory(results);
   }, [searchTerm, inventory]);
 
-  // Handles input changes within the modal
   const handleModalChange = (e) => {
-    setModalForm({ ...modalForm, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'selectedLayout') {
+      setModalForm({
+        ...modalForm,
+        selectedLayout: value,
+        selectedLocation: '',
+      });
+    } else {
+      setModalForm({ ...modalForm, [name]: value });
+    }
   };
-  
-  // Handles the submission of the "Set Inventory" form
+
   const handleModalSubmit = async (e) => {
     e.preventDefault();
     if (!modalForm.selectedSku || !modalForm.selectedLocation || modalForm.quantity < 0) {
-      toast.error("Please fill out all fields with valid data.");
-      return;
+      toast.error("Please fill out all fields."); return;
     }
     try {
-      await setInventory({
-        skuId: modalForm.selectedSku,
-        locationId: modalForm.selectedLocation,
-        quantity: modalForm.quantity,
-      }, token);
+      await setInventory({ skuId: modalForm.selectedSku, locationId: modalForm.selectedLocation, quantity: modalForm.quantity }, token);
       toast.success(`Inventory set successfully!`);
       setIsModalOpen(false);
-      triggerInventoryUpdate(); // Triggers a refresh of the inventory list
-    } catch (error) {
-      toast.error("Failed to set inventory.");
-    }
+      fetchInventory();
+    } catch (error) { toast.error("Failed to set inventory."); }
   };
 
-  const openEditModal = (item) => {
-    setCurrentItem(item);
-    setAdjustment(item.quantity);
-    setIsEditModalOpen(true);
-  };
+  const openEditModal = (item) => { setCurrentItem(item); setAdjustment(item.quantity); setIsEditModalOpen(true); };
 
-   const handleAdjustSubmit = async (e) => {
+  const handleAdjustSubmit = async (e) => {
     e.preventDefault();
     const newQuantity = parseInt(adjustment);
-    if (isNaN(newQuantity) || newQuantity < 0) {
-      toast.error("Please enter a valid quantity.");
-      return;
-    }
-
+    if (isNaN(newQuantity) || newQuantity < 0) { toast.error("Please enter a valid quantity."); return; }
     try {
-      // Call the updated service function with the item's unique _id
       await adjustInventory(currentItem._id, { quantity: newQuantity }, token);
       toast.success('Quantity adjusted!');
       setIsEditModalOpen(false);
-      fetchInventory(); // Refresh list
-    } catch (error) {
-      toast.error('Failed to adjust quantity.');
-    }
+      fetchInventory();
+    } catch (error) { toast.error('Failed to adjust quantity.'); }
   };
 
   const handleDelete = async (item) => {
     if (window.confirm(`Are you sure you want to remove ${item.sku.skuCode} from this location?`)) {
       try {
-        // Call the updated service function with the item's unique _id
         await deleteInventory(item._id, token);
         toast.success('Inventory record removed.');
-        fetchInventory(); // Refresh list
-      } catch (error) {
-        toast.error('Failed to remove inventory.');
-      }
+        fetchInventory();
+      } catch (error) { toast.error('Failed to remove inventory.'); }
     }
   };
 
-
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-lg">
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <div className="relative">
-          <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search Inventory..."
-            className="w-full max-w-md p-2 pl-10 border border-gray-300 rounded-lg"
-          />
+        <h1 className="text-2xl font-bold text-gray-800">Inventory View</h1>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search Inventory"
+              className="w-full max-w-xs p-2 pl-10 border bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#E59F71] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-sm"
+          >
+            <FiPlus /> Set Inventory
+          </button>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-        >
-          <FiPlus />
-          Set Inventory
-        </button>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+        <table className="min-w-full">
+          <thead>
+            <tr className="bg-[#1E392A]">
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase text-white rounded-l-lg">Product Name</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase text-white">Location</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase text-white">SKU</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase text-white">Quantity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase text-white rounded-r-lg">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white">
             {loading ? (
-              <tr><td colSpan="5" className="text-center py-4">Loading...</td></tr>
+              <tr><td colSpan="5" className="text-center py-8 text-gray-500">Loading inventory...</td></tr>
             ) : (
-              filteredInventory.map(item => (
-                <tr key={item._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.sku?.name || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.location?.locationCode || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.sku?.skuCode || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.quantity} units</td>
+              filteredInventory.map((item, index) => (
+                <tr key={item._id} className={index % 2 === 0 ? 'bg-[#F0F5F2]' : 'bg-white'}>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-800">{item.sku?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{item.location?.locationCode || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{item.sku?.skuCode || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{item.quantity} units</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <button onClick={() => openEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4"><FiEdit /></button>
+                    <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-900 mr-4"><FiEdit /></button>
                     <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-900"><FiTrash2 /></button>
                   </td>
                 </tr>
@@ -223,42 +209,45 @@ const InventoryPage = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Set Inventory">
         <form onSubmit={handleModalSubmit} className="space-y-4">
-          <select name="selectedLayout" onChange={handleModalChange} className="w-full p-2 border rounded-md">
-            <option value="">-- Select a Layout --</option>
-            {layouts.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
-          </select>
-          <select name="selectedLocation" onChange={handleModalChange} disabled={!modalForm.selectedLayout} className="w-full p-2 border rounded-md">
-            <option value="">-- Select a Location --</option>
-            {locations.map(loc => <option key={loc._id} value={loc._id}>{loc.locationCode}</option>)}
-          </select>
-          <select name="selectedSku" onChange={handleModalChange} className="w-full p-2 border rounded-md">
-            <option value="">-- Select an SKU --</option>
-            {skus.map(sku => <option key={sku._id} value={sku._id}>{sku.skuCode} - {sku.name}</option>)}
-          </select>
-          <input type="number" name="quantity" placeholder="Quantity" onChange={handleModalChange} min="0" className="w-full p-2 border rounded-md" />
-          <div className="flex justify-end gap-2 pt-4">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Map SKU to Location</button>
+           <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Select Layout</label>
+            <select name="selectedLayout" value={modalForm.selectedLayout} onChange={handleModalChange} className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent">
+              <option value="">-- Choose a Layout --</option>
+              {layouts.map(layout => <option key={layout._id} value={layout._id}>{layout.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Product Name</label>
+            <select name="selectedSku" value={modalForm.selectedSku} onChange={handleModalChange} className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent">
+              <option value="">-- Choose a Product --</option>
+              {skus.map(sku => <option key={sku._id} value={sku._id}>{sku.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Select Location</label>
+            <select name="selectedLocation" value={modalForm.selectedLocation} onChange={handleModalChange} disabled={!modalForm.selectedLayout || locations.length === 0} className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent disabled:bg-gray-200">
+              <option value="">-- Choose a Location --</option>
+              {locations.map(loc => <option key={loc._id} value={loc._id}>{loc.locationCode}</option>)}
+            </select>
+          </div>
+          <div>
+             <label className="block text-sm font-medium mb-1 text-gray-700">Set Quantity</label>
+            <input type="number" name="quantity" placeholder="0" value={modalForm.quantity} onChange={handleModalChange} min="0" className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent" />
+          </div>
+          <div className="flex justify-center pt-4">
+            <button type="submit" className="w-full px-4 py-2.5 bg-[#3D6E4D] text-white rounded-lg hover:bg-opacity-90 shadow-sm">Map SKU to Location</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Adjust Quantity for ${currentItem?.sku?.skuCode}`}>
-        <form onSubmit={handleAdjustSubmit}>
-          <div className="mb-4">
-            <label htmlFor="adjustment" className="block text-sm font-medium">Quantity</label>
-            <input
-              type="number"
-              id="adjustment"
-              value={adjustment}
-              onChange={(e) => setAdjustment(e.target.value)}
-              required
-              className="mt-1 block w-full px-3 py-2 border rounded-md"
-            />
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Edit Quantity for ${currentItem?.sku?.skuCode}`}>
+        <form onSubmit={handleAdjustSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="adjustment" className="block text-sm font-medium mb-1 text-gray-700">Quantity</label>
+            <input type="number" id="adjustment" value={adjustment} onChange={(e) => setAdjustment(e.target.value)} required className="mt-1 block w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"/>
           </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
+          <div className="flex justify-center gap-2 pt-4">
+            <button type="submit" className="w-full px-4 py-2.5 bg-[#3D6E4D] text-white rounded-lg">Save Changes</button>
           </div>
         </form>
       </Modal>

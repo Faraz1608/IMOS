@@ -2,14 +2,9 @@ import Sku from '../models/Sku.js';
 import Location from '../models/Location.js';
 import Inventory from '../models/Inventory.js';
 
-// @desc    Run ABC analysis on all SKUs
-// @route   POST /api/optimize/abc-analysis
+// ... (existing runAbcAnalysis and getSlottingRecommendations functions remain the same)
 export const runAbcAnalysis = async (req, res) => {
   try {
-    // In a real system, you'd pull sales/movement data.
-    // Here, we'll simulate it with a simple placeholder logic.
-    // For this example, we'll randomly assign A, B, or C.
-    
     const skus = await Sku.find({});
     const classifications = ['A', 'B', 'C'];
     
@@ -26,29 +21,23 @@ export const runAbcAnalysis = async (req, res) => {
   }
 };
 
-// @desc    Generate slotting recommendations
-// @route   GET /api/optimize/recommendations
 export const getSlottingRecommendations = async (req, res) => {
   try {
-    // 1. Define what an "optimal" location is.
-    // For this example, let's say it's any location in aisle "A01".
     const optimalLocations = await Location.find({ locationCode: /^A01/ });
     if (optimalLocations.length === 0) {
       return res.status(200).json({ message: 'No optimal locations found to make recommendations.' });
     }
     const optimalLocationIds = optimalLocations.map(loc => loc._id);
 
-    // 2. Find fast-moving ('A' class) SKUs that are NOT in optimal locations.
     const mislocatedInventory = await Inventory.find({
-      location: { $nin: optimalLocationIds } // Find inventory NOT IN optimal spots
+      location: { $nin: optimalLocationIds }
     }).populate({
       path: 'sku',
-      match: { velocity: 'A' } // ...where the SKU is a fast-mover
+      match: { velocity: 'A' }
     }).populate('location');
 
-    // Filter out results where the SKU didn't match the 'A' velocity
     const recommendations = mislocatedInventory
-      .filter(item => item.sku) // Ensure the SKU exists (wasn't filtered out by populate)
+      .filter(item => item.sku)
       .map(item => ({
         skuToMove: item.sku.skuCode,
         currentLocation: item.location.locationCode,
@@ -58,6 +47,35 @@ export const getSlottingRecommendations = async (req, res) => {
     res.status(200).json(recommendations);
   } catch (error) {
     console.error('Error in getSlottingRecommendations:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+
+// --- NEW FUNCTION ---
+// @desc    Generate an optimal picking route for a dispatch order
+// @route   POST /api/optimize/picking-route
+export const generatePickingRoute = async (req, res) => {
+  try {
+    const { items } = req.body; // Expect an array of { skuCode, quantity }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'An array of items is required.' });
+    }
+
+    // 1. Find the locations for all SKUs in the order.
+    const inventoryLocations = await Inventory.find({
+      'sku': { $in: await Sku.find({ 'skuCode': { $in: items.map(i => i.skuCode) } }).distinct('_id') }
+    }).populate('location');
+
+    // 2. Simulate a pathfinding algorithm by sorting locations alphabetically.
+    const pickingRoute = inventoryLocations
+      .map(inv => inv.location.locationCode)
+      .sort(); // A simple sort to simulate an optimized path
+
+    res.status(200).json({ pickingRoute });
+  } catch (error) {
+    console.error('Error generating picking route:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };

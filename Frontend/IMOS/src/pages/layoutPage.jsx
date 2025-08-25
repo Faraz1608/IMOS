@@ -4,14 +4,16 @@ import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
 import { getLayouts, createLayout, deleteLayout } from '../services/layoutService.js';
 import Modal from '../components/modal.jsx';
-import { FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi';
 
 const LayoutsPage = () => {
   const [layouts, setLayouts] = useState([]);
+  const [filteredLayouts, setFilteredLayouts]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState('');
   const [newLayoutDesc, setNewLayoutDesc] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const { token } = useAuthStore();
 
   const fetchLayouts = async () => {
@@ -19,8 +21,8 @@ const LayoutsPage = () => {
       setLoading(true);
       const response = await getLayouts(token);
       setLayouts(response.data);
+      setFilteredLayouts(response.data);
     } catch (error) {
-      console.error('Failed to fetch layouts:', error);
       toast.error('Could not fetch layouts.');
     } finally {
       setLoading(false);
@@ -31,6 +33,13 @@ const LayoutsPage = () => {
     fetchLayouts();
   }, [token]);
 
+  useEffect(() => {
+    const results = layouts.filter(layout =>
+      layout.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredLayouts(results);
+  }, [searchTerm, layouts]);
+
   const handleAddLayout = async (e) => {
     e.preventDefault();
     try {
@@ -39,98 +48,96 @@ const LayoutsPage = () => {
       setIsModalOpen(false);
       setNewLayoutName('');
       setNewLayoutDesc('');
-      fetchLayouts(); // Refresh the list
+      fetchLayouts();
     } catch (error) {
-      console.error('Failed to create layout:', error);
-      toast.error('Failed to create layout.');
+      const errorMessage = error.response?.data?.message || 'Failed to create layout.';
+      toast.error(errorMessage);
     }
   };
 
   const handleDeleteLayout = async (layoutId) => {
-    if (window.confirm('Are you sure you want to delete this layout? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this layout? This will also delete all associated locations and inventory records.')) {
       try {
         await deleteLayout(layoutId, token);
         toast.success('Layout deleted successfully!');
-        fetchLayouts(); // Refresh the list
+        fetchLayouts();
       } catch (error) {
-        console.error('Failed to delete layout:', error);
         toast.error('Failed to delete layout.');
       }
     }
   };
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Warehouse Layouts</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-        >
-          Add New Layout
-        </button>
+    <div>
+       <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Layouts</h1>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search Layout"
+              className="w-full max-w-xs p-2 pl-10 border bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#E59F71] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-sm"
+          >
+            <FiPlus /> Add Layout
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
+      <div className="space-y-3">
         {loading ? (
-          <p className="p-4 text-center">Loading...</p>
+          <p className="text-center py-8 text-gray-500">Loading...</p>
         ) : (
-          <ul className="divide-y divide-gray-200">
-            {layouts.length > 0 ? (
-              layouts.map((layout) => (
-                <li key={layout._id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                  <div>
-                    <Link to={`/layouts/${layout._id}/locations`} className="text-lg font-medium hover:underline">{layout.name}</Link>
-                    <p className="text-sm text-gray-500">{layout.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link to={`/layouts/${layout._id}`} className="p-2 text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200">
-                      <FiEdit />
-                    </Link>
-                    <button onClick={() => handleDeleteLayout(layout._id)} className="p-2 text-red-600 bg-red-100 rounded-lg hover:bg-red-200">
-                      <FiTrash2 />
-                    </button>
-                  </div>
-                </li>
-              ))
-            ) : (
-              <li className="p-4 text-center text-gray-500">
-                No layouts found. Click "Add New Layout" to get started.
-              </li>
-            )}
-          </ul>
+          filteredLayouts.map((layout) => (
+            <div key={layout._id} className="p-4 bg-[#F0F5F2] rounded-lg flex justify-between items-center">
+              <div>
+                 <Link to={`/layouts/${layout._id}/locations`} className="font-bold text-gray-800 hover:underline">{layout.name}</Link>
+                 <p className="text-sm text-gray-600">{layout.description || 'No description'}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link to={`/layouts/${layout._id}`} className="flex items-center gap-1.5 text-blue-600 bg-blue-100/60 px-3 py-1.5 rounded-lg hover:bg-blue-100 text-sm">
+                  <FiEdit size={14}/> Edit
+                </Link>
+                <button onClick={() => handleDeleteLayout(layout._id)} className="flex items-center gap-1.5 text-red-600 bg-red-100/60 px-3 py-1.5 rounded-lg hover:bg-red-100 text-sm">
+                  <FiTrash2 size={14}/> Delete
+                </button>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Layout">
-        <form onSubmit={handleAddLayout}>
-          <div className="mb-4">
-            <label htmlFor="layoutName" className="block text-sm font-medium text-gray-700">Layout Name</label>
+        <form onSubmit={handleAddLayout} className="space-y-4">
+          <div>
+            <label htmlFor="layoutName" className="block text-sm font-medium mb-1 text-gray-700">Layout Name</label>
             <input
               type="text"
               id="layoutName"
               value={newLayoutName}
               onChange={(e) => setNewLayoutName(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
             />
           </div>
-          <div className="mb-4">
-            <label htmlFor="layoutDesc" className="block text-sm font-medium text-gray-700">Description</label>
+          <div>
+            <label htmlFor="layoutDesc" className="block text-sm font-medium mb-1 text-gray-700">Description</label>
             <textarea
               id="layoutDesc"
               value={newLayoutDesc}
               onChange={(e) => setNewLayoutDesc(e.target.value)}
               rows="3"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
             ></textarea>
           </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">
-              Cancel
-            </button>
-            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-              Create
+          <div className="flex justify-center pt-4">
+            <button type="submit" className="w-full px-4 py-2.5 bg-[#3D6E4D] text-white rounded-lg hover:bg-opacity-90 shadow-sm">
+              Create New Layout
             </button>
           </div>
         </form>

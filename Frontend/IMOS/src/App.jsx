@@ -17,6 +17,7 @@ import ReportsPage from './pages/reportsPage.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
 import UserManagementPage from './pages/userManagementPage.jsx';
 import { useState } from 'react';
+import AnalyticsPage from './pages/analyticsPage.jsx';
 
 function App() {
 
@@ -47,6 +48,7 @@ function App() {
           <Route path="optimizations" element={<OptimizationsPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route 
             path="admin/users" 
             element={<AdminRoute><UserManagementPage /></AdminRoute>} 

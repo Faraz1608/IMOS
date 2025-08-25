@@ -11,6 +11,14 @@ export const getSlottingRecommendations = (token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+// --- NEW FUNCTION ---
+export const generatePickingRoute = (items, token) => {
+  return api.post('/optimize/picking-route', { items }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
 export const getLayoutStats = (layoutId, token) => {
   return api.get(`/layouts/${layoutId}/stats`, {
     headers: { Authorization: `Bearer ${token}` },
