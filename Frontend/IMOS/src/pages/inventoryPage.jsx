@@ -12,7 +12,7 @@ const InventoryPage = () => {
   const { token, triggerInventoryUpdate, inventoryLastUpdated } = useAuthStore();
   
   // Data for the main inventory table
-  const [inventory, setInventory] = useState([]);
+  const [inventory, setNewInventory] = useState([]);
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,11 +36,11 @@ const InventoryPage = () => {
     try {
       setLoading(true);
       const res = await getInventory(token);
-      setInventory(Array.isArray(res.data) ? res.data : []);
+      setNewInventory(Array.isArray(res.data) ? res.data : []);
       setFilteredInventory(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       toast.error("Could not fetch inventory.");
-      setInventory([]);
+      setNewInventory({});
       setFilteredInventory([]);
     } finally {
       setLoading(false);
@@ -115,7 +115,12 @@ const InventoryPage = () => {
         locationId: modalForm.selectedLocation,
         quantity: modalForm.quantity,
       }, token);
-      toast.success("Inventory set successfully!");
+      toast.success(`Inventory set successfully!`);
+      // console.log(`Inventory set successfully! - ${{
+      //   skuId: modalForm.selectedSku,
+      //   locationId: modalForm.selectedLocation,
+      //   quantity: modalForm.quantity,
+      // }, token}`);
       setIsModalOpen(false);
       triggerInventoryUpdate(); // Triggers a refresh of the inventory list
     } catch (error) {

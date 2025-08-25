@@ -24,12 +24,23 @@ export const setInventory = async (req, res) => {
       return res.status(400).json({ message: 'SKU, location, and quantity are required' });
     }
     
-    // Find existing inventory record or create a new one
-    const inventory = await Inventory.findOneAndUpdate(
+    // Find existing inventory record or 
+    let inventory=null;
+
+    inventory = await Inventory.findOneAndUpdate(
       { sku: skuId, location: locationId },
       { quantity, createdBy: req.user.id },
       { new: true, upsert: true } // `upsert: true` creates the doc if it doesn't exist
     );
+
+
+
+    if(!inventory){
+      inventory= new Inventory({
+        sku: skuId, location: locationId , quantity
+      })
+    }
+
 
     res.status(200).json(inventory);
   } catch (error) {
