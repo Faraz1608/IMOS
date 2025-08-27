@@ -5,7 +5,7 @@ import DashboardPage from './pages/dashboardPage.jsx';
 import ProtectedRoute from './components/protectedRoutes.jsx';
 import AppLayout from './components/appLayout.jsx';
 import LayoutsPage from './pages/layoutPage.jsx';
-import LocationsPage from './pages/locationPage.jsx'; // Import the new page
+import LocationsPage from './pages/locationPage.jsx';
 import SkuPage from './pages/skuPage.jsx';
 import InventoryPage from './pages/inventoryPage.jsx';
 import OptimizationsPage from './pages/optimizationPage.jsx';
@@ -16,8 +16,6 @@ import SkuDetailPage from './pages/skuDetailPage.jsx';
 import ReportsPage from './pages/reportsPage.jsx'; 
 import AdminRoute from './components/AdminRoute.jsx';
 import UserManagementPage from './pages/userManagementPage.jsx';
-import { useState } from 'react';
-import AnalyticsPage from './pages/analyticsPage.jsx';
 
 function App() {
 
@@ -45,10 +43,9 @@ function App() {
           <Route path="skus/:id" element={<SkuDetailPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="optimizations" element={<OptimizationsPage />} />
-          <Route path="optimizations" element={<OptimizationsPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
+          {/* Analytics route is now merged into reports */}
           <Route 
             path="admin/users" 
             element={<AdminRoute><UserManagementPage /></AdminRoute>} 

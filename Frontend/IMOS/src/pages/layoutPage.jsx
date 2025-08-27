@@ -77,12 +77,12 @@ const LayoutsPage = () => {
             <input
               type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search Layout"
-              className="w-full max-w-xs p-2 pl-10 border bg-gray-50 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
+              className="w-full max-w-xs p-2 pl-10 border rounded-lg"
             />
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#E59F71] text-white rounded-lg hover:bg-opacity-90 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
           >
             <FiPlus /> Add Layout
           </button>
@@ -94,16 +94,16 @@ const LayoutsPage = () => {
           <p className="text-center py-8 text-gray-500">Loading...</p>
         ) : (
           filteredLayouts.map((layout) => (
-            <div key={layout._id} className="p-4 bg-[#F0F5F2] rounded-lg flex justify-between items-center">
+            <div key={layout._id} className="p-4 bg-purple-50 rounded-lg flex justify-between items-center border border-purple-100">
               <div>
                  <Link to={`/layouts/${layout._id}/locations`} className="font-bold text-gray-800 hover:underline">{layout.name}</Link>
                  <p className="text-sm text-gray-600">{layout.description || 'No description'}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Link to={`/layouts/${layout._id}`} className="flex items-center gap-1.5 text-blue-600 bg-blue-100/60 px-3 py-1.5 rounded-lg hover:bg-blue-100 text-sm">
+                <Link to={`/layouts/${layout._id}`} className="flex items-center gap-1.5 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 text-sm">
                   <FiEdit size={14}/> Edit
                 </Link>
-                <button onClick={() => handleDeleteLayout(layout._id)} className="flex items-center gap-1.5 text-red-600 bg-red-100/60 px-3 py-1.5 rounded-lg hover:bg-red-100 text-sm">
+                <button onClick={() => handleDeleteLayout(layout._id)} className="flex items-center gap-1.5 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 text-sm">
                   <FiTrash2 size={14}/> Delete
                 </button>
               </div>
@@ -113,30 +113,25 @@ const LayoutsPage = () => {
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Layout">
-        <form onSubmit={handleAddLayout} className="space-y-4">
+        <form onSubmit={handleAddLayout} className="space-y-4 pt-4">
           <div>
             <label htmlFor="layoutName" className="block text-sm font-medium mb-1 text-gray-700">Layout Name</label>
             <input
-              type="text"
-              id="layoutName"
-              value={newLayoutName}
-              onChange={(e) => setNewLayoutName(e.target.value)}
-              required
-              className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
+              type="text" id="layoutName" value={newLayoutName}
+              onChange={(e) => setNewLayoutName(e.target.value)} required
+              className="w-full p-2 border rounded-md"
             />
           </div>
           <div>
             <label htmlFor="layoutDesc" className="block text-sm font-medium mb-1 text-gray-700">Description</label>
             <textarea
-              id="layoutDesc"
-              value={newLayoutDesc}
-              onChange={(e) => setNewLayoutDesc(e.target.value)}
-              rows="3"
-              className="w-full p-2 border rounded-md bg-gray-50 focus:ring-2 focus:ring-[#3D6E4D] focus:border-transparent"
+              id="layoutDesc" value={newLayoutDesc}
+              onChange={(e) => setNewLayoutDesc(e.target.value)} rows="3"
+              className="w-full p-2 border rounded-md"
             ></textarea>
           </div>
           <div className="flex justify-center pt-4">
-            <button type="submit" className="w-full px-4 py-2.5 bg-[#3D6E4D] text-white rounded-lg hover:bg-opacity-90 shadow-sm">
+            <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">
               Create New Layout
             </button>
           </div>

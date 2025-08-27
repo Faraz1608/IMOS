@@ -1,15 +1,20 @@
 import Inventory from '../models/Inventory.js';
-import Sku from '../models/Sku.js';
-import Location from '../models/Location.js';
+import Transaction from '../models/Transaction.js';
 
 export const getInventory = async (req, res) => {
   try {
     const inventory = await Inventory.find({ createdBy: req.user.id })
       .populate({ path: 'sku', select: 'skuCode name' })
-      .populate({ path: 'location', select: 'locationCode _id' });
+      .populate({ 
+        path: 'location', 
+        select: 'locationCode layout',
+        populate: {
+          path: 'layout',
+          select: 'name'
+        }
+      });
     res.status(200).json(inventory);
   } catch (error) {
-    console.error('Error getting inventory:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -20,41 +25,26 @@ export const setInventory = async (req, res) => {
     if (!skuId || !locationId || quantity == null) {
       return res.status(400).json({ message: 'SKU, location, and quantity are required' });
     }
-    
+
     const inventory = await Inventory.findOneAndUpdate(
       { sku: skuId, location: locationId },
       { quantity, createdBy: req.user.id },
-      { new: true, upsert: true }
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     );
     
-    // Emit event after successful update
-    req.io.emit('inventory_updated');
+    // Create a "Goods Receipt" transaction
+    await Transaction.create({
+      sku: skuId,
+      type: 'GR',
+      quantity: quantity,
+      user: req.user.id,
+    });
     
+    req.io.emit('inventory_updated');
     res.status(200).json(inventory);
   } catch (error) {
-    console.error('Error setting inventory:', error);
     res.status(500).json({ message: 'Server Error' });
   }
-};
-
-export const getInventoryByLocation = async (req, res) => {
-    try {
-        const inventory = await Inventory.find({ location: req.params.locationId }).populate('sku');
-        res.status(200).json(inventory);
-    } catch (error) {
-        console.error('Error getting inventory by location:', error);
-        res.status(500).json({ message: 'Server Error' });
-    }
-};
-
-export const getInventoryBySKU = async (req, res) => {
-    try {
-        const inventory = await Inventory.find({ sku: req.params.skuId }).populate('location');
-        res.status(200).json(inventory);
-    } catch (error) {
-        console.error('Error getting inventory by SKU:', error);
-        res.status(500).json({ message: 'Server Error' });
-    }
 };
 
 export const adjustInventory = async (req, res) => {
@@ -64,40 +54,52 @@ export const adjustInventory = async (req, res) => {
       return res.status(400).json({ message: 'Quantity is required' });
     }
 
-    const updatedInventory = await Inventory.findByIdAndUpdate(
-      req.params.id,
-      { quantity: quantity },
-      { new: true }
-    );
-
-    if (!updatedInventory) {
+    const inventoryItem = await Inventory.findById(req.params.id);
+    if (!inventoryItem) {
       return res.status(404).json({ message: 'Inventory record not found.' });
     }
-    
-    // Emit event after successful update
-    req.io.emit('inventory_updated');
 
-    res.status(200).json(updatedInventory);
+    const oldQuantity = inventoryItem.quantity;
+    const quantityChange = quantity - oldQuantity;
+
+    inventoryItem.quantity = quantity;
+    await inventoryItem.save();
+
+    // Create a transaction based on the quantity change
+    if (quantityChange !== 0) {
+      await Transaction.create({
+        sku: inventoryItem.sku,
+        type: quantityChange > 0 ? 'GR' : 'GI',
+        quantity: Math.abs(quantityChange),
+        user: req.user.id,
+      });
+    }
+
+    req.io.emit('inventory_updated');
+    res.status(200).json(inventoryItem);
   } catch (error) {
-    console.error('Error adjusting inventory:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
 export const deleteInventory = async (req, res) => {
   try {
-    const result = await Inventory.findByIdAndDelete(req.params.id);
-
-    if (!result) {
+    const inventoryItem = await Inventory.findByIdAndDelete(req.params.id);
+    if (!inventoryItem) {
       return res.status(404).json({ message: 'Inventory record not found.' });
     }
     
-    // Emit event after successful deletion
-    req.io.emit('inventory_updated');
+    // Create a "Goods Issue" transaction for the removed quantity
+    await Transaction.create({
+        sku: inventoryItem.sku,
+        type: 'GI',
+        quantity: inventoryItem.quantity,
+        user: req.user.id,
+    });
 
+    req.io.emit('inventory_updated');
     res.status(200).json({ message: 'Inventory record deleted successfully.' });
   } catch (error) {
-    console.error('Error deleting inventory:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };

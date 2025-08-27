@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import { FiMail, FiLock } from 'react-icons/fi';
 
-// A simple logo component
 const ImosLogo = () => (
   <svg height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 12L24 4L44 12V36L24 44L4 36V12Z" stroke="#4F46E5" strokeWidth="4" strokeLinejoin="round"/>
-    <path d="M4 12L24 20L44 12" stroke="#4F46E5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M24 44V20" stroke="#4F46E5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 12L24 4L44 12V36L24 44L4 36V12Z" stroke="#1E40AF" strokeWidth="4" strokeLinejoin="round"/>
+    <path d="M4 12L24 20L44 12" stroke="#1E40AF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M24 44V20" stroke="#1E40AF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -18,7 +18,6 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [selectedRole, setSelectedRole] = useState('Operator'); // Default role
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -43,71 +42,49 @@ const LoginPage = () => {
     }
   };
 
-  const RoleButton = ({ role }) => (
-    <button
-      type="button"
-      onClick={() => setSelectedRole(role)}
-      className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-        selectedRole === role
-          ? 'bg-indigo-600 text-white'
-          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-      }`}
-    >
-      {role}
-    </button>
-  );
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="flex rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden">
-        {/* Left Side - Image */}
-        <div className="hidden md:block md:w-1/2">
-          <img 
-            src="https://images.unsplash.com/photo-1576185244583-53699c2b48b1?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80" 
-            alt="Warehouse worker" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Right Side - Form */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 bg-white flex flex-col justify-center">
-          <div className="flex items-center gap-4 mb-6">
+    <div 
+      className="min-h-screen flex items-center justify-center bg-cover bg-center"
+      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1576185244583-53699c2b48b1?auto=format&fit=crop&w=1920&q=80')" }}
+    >
+      <div className="w-full max-w-sm p-8 space-y-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl">
+        <div className="text-center">
+          <div className="flex justify-center items-center gap-3 mb-2">
             <ImosLogo />
-            <h1 className="text-3xl font-bold text-gray-900">IMOS</h1>
+            <h1 className="text-4xl font-bold text-blue-900">IMOS</h1>
           </div>
-          <p className="text-gray-600 mb-8">Sign in to your account</p>
-
-          <div className="flex space-x-4 mb-8">
-            <RoleButton role="Operator" />
-            <RoleButton role="Manager" />
-            <RoleButton role="Admin" />
-          </div>
-
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-              <input id="email" name="email" type="email" required className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" value={formData.email} onChange={handleChange} />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-              <input id="password" name="password" type="password" required className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" value={formData.password} onChange={handleChange} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember Me</label>
-              </div>
-            </div>
-            <div>
-              <button type="submit" className="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Sign in as {selectedRole}
-              </button>
-            </div>
-          </form>
-          <p className="mt-8 text-sm text-center text-gray-600">
-            No account? <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">Register here</Link>
-          </p>
+          <p className="text-gray-600">Sign in to your account</p>
         </div>
+
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="relative">
+            <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"/>
+            <input 
+              id="email" name="email" type="email" required 
+              placeholder="Email"
+              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+              value={formData.email} onChange={handleChange} 
+            />
+          </div>
+          <div className="relative">
+            <FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"/>
+            <input 
+              id="password" name="password" type="password" required 
+              placeholder="Password"
+              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+              value={formData.password} onChange={handleChange} 
+            />
+          </div>
+          <div className="flex items-center">
+            <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember Me</label>
+          </div>
+          <div>
+            <button type="submit" className="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Sign in as Operator
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

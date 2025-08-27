@@ -29,22 +29,31 @@ export const getDashboardStats = async (req, res) => {
       });
       const spaceUtilization = totalLocations > 0 ? (occupiedLocationsResult.length / totalLocations) * 100 : 0;
       return {
-        name: layout.name, // Changed to 'name' for recharts
+        name: layout.name,
         utilization: parseFloat(spaceUtilization.toFixed(2)),
       };
     });
     const layoutUtilization = await Promise.all(layoutStatsPromises);
 
     // --- Recent Transactions ---
-    const totalTransactions = await Transaction.countDocuments();
+    const recentTransactions = await Transaction.aggregate([
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]);
+
+    // --- Inventory Status (Recent Dispatches) ---
+    const inventoryStatus = await Dispatch.find()
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .populate('items.sku', 'name');
 
     res.status(200).json({
       totalSkus,
       pendingDispatches,
       activeUsers,
-      userRoles, // Send role data to frontend
+      userRoles,
       layoutUtilization,
-      totalTransactions,
+      recentTransactions,
+      inventoryStatus 
     });
 
   } catch (error) {
