@@ -2,9 +2,7 @@ import express from 'express';
 import {
   runAbcAnalysis,
   getSlottingRecommendations,
-  generatePickingRoute,
-  getLayoutOptimizationRecommendations,
-  calculateReorderPoints
+  generatePickingRoute, // 1. Import the new function
 } from '../controllers/optimizationController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -13,8 +11,6 @@ router.use(protect);
 
 router.route('/abc-analysis').post(runAbcAnalysis);
 router.route('/recommendations').get(getSlottingRecommendations);
-router.route('/picking-route').post(generatePickingRoute);
-router.route('/layout-optimization').get(getLayoutOptimizationRecommendations);
-router.route('/reorder-analysis').post(calculateReorderPoints);
+router.route('/picking-route').post(generatePickingRoute); // 2. Add the new route
 
 export default router;

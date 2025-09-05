@@ -1,9 +1,8 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import NotificationBell from './NotificationBell';
 import { FiGrid, FiPackage, FiLayers, FiBarChart2, FiFileText, FiSettings, FiLogOut, FiUser, FiEye } from 'react-icons/fi';
-import { LuBrainCircuit } from 'react-icons/lu'; // Keep this one
+import NotificationBell from './NotificationBell';
 
 const AppLayout = () => {
   const { user, logout } = useAuthStore();
@@ -43,7 +42,6 @@ const AppLayout = () => {
             <NavItem to="/inventory" icon={<FiEye />}>Inventory View</NavItem>
             <NavItem to="/optimizations" icon={<FiBarChart2 />}>ICC Optimization</NavItem>
             <NavItem to="/reports" icon={<FiFileText />}>Reports</NavItem>
-            <NavItem to="/advanced-analytics" icon={<LuBrainCircuit />}>Advanced Analytics</NavItem>
           </nav>
           <nav className="px-4 pb-4">
             {/*   */}

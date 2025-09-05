@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { getInventory, setInventory, adjustInventory, deleteInventory } from '../services/inventoryService';
@@ -6,8 +6,8 @@ import { getSkus } from '../services/skuService';
 import { getLayouts } from '../services/layoutService';
 import { getLocationsByLayout } from '../services/locationService';
 import Modal from '../components/modal.jsx';
-import { FiPlus, FiSearch, FiEdit, FiTrash2, FiMinusCircle, FiPlusCircle, FiWifi, FiWifiOff, FiRefreshCw } from 'react-icons/fi';
-import { useSocket, useInventoryUpdates } from '../hooks/useSocket.js';
+import { FiPlus, FiSearch, FiEdit, FiTrash2, FiMinusCircle, FiPlusCircle } from 'react-icons/fi';
+import io from 'socket.io-client';
 
 const InventoryPage = () => {
   const { token, inventoryLastUpdated } = useAuthStore();
@@ -23,53 +23,29 @@ const InventoryPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [adjustment, setAdjustment] = useState('');
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  
-  // Real-time socket connection
-  const { isConnected } = useSocket();
 
-  const fetchInventory = useCallback(async () => {
+  const fetchInventory = async () => {
     try {
       setLoading(true);
       const res = await getInventory(token);
       const inventoryData = Array.isArray(res.data) ? res.data : [];
       setNewInventory(inventoryData);
       setFilteredInventory(inventoryData);
-      setLastUpdated(new Date());
     } catch (error) {
       toast.error("Could not fetch inventory.");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  };
 
-  // Real-time inventory update handler
-  const handleInventoryUpdate = useCallback((data) => {
-    console.log('📦 Inventory update received:', data);
-    
-    if (data.action === 'create') {
-      setNewInventory(prev => [...prev, data.data]);
-      setFilteredInventory(prev => [...prev, data.data]);
-      toast.success('📦 New inventory item added');
-    } else if (data.action === 'update') {
-      setNewInventory(prev => prev.map(item => 
-        item._id === data.data._id ? data.data : item
-      ));
-      setFilteredInventory(prev => prev.map(item => 
-        item._id === data.data._id ? data.data : item
-      ));
-      toast.success('🔄 Inventory item updated');
-    } else if (data.action === 'delete') {
-      setNewInventory(prev => prev.filter(item => item._id !== data.data._id));
-      setFilteredInventory(prev => prev.filter(item => item._id !== data.data._id));
-      toast.success('🗑️ Inventory item removed');
-    }
-    
-    setLastUpdated(new Date());
+  useEffect(() => {
+    const socket = io('http://localhost:7000');
+    socket.on('inventory_updated', () => {
+        toast('Inventory has been updated.', { icon: '🔄' });
+        fetchInventory();
+    });
+    return () => { socket.disconnect(); };
   }, []);
-
-  // Set up real-time updates
-  useInventoryUpdates(handleInventoryUpdate);
 
   useEffect(() => { fetchInventory(); }, [token, inventoryLastUpdated]);
 
@@ -183,49 +159,8 @@ const InventoryPage = () => {
 
   return (
     <div>
-      {/* Real-time Status Header */}
-      <div className="bg-white p-4 rounded-xl shadow-md mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-gray-800">Inventory View</h1>
-            <div className="flex items-center space-x-2">
-              {isConnected ? (
-                <>
-                  <FiWifi className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-green-600">Live Updates</span>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                </>
-              ) : (
-                <>
-                  <FiWifiOff className="w-4 h-4 text-red-500" />
-                  <span className="text-sm font-medium text-red-600">Offline</span>
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                </>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Last updated</p>
-              <p className="text-sm font-medium">{lastUpdated.toLocaleTimeString()}</p>
-            </div>
-            <button
-              onClick={fetchInventory}
-              disabled={loading}
-              className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>{loading ? 'Updating...' : 'Refresh'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      
       <div className="flex justify-between items-center mb-6">
-        <div className="text-sm text-gray-600">
-          Showing {filteredInventory.length} of {inventory.length} items
-        </div>
+        <h1 className="text-2xl font-bold text-gray-800">Inventory View</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
             <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />

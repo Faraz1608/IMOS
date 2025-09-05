@@ -40,20 +40,7 @@ export const setInventory = async (req, res) => {
       user: req.user.id,
     });
     
-    // Broadcast real-time inventory update
-    const populatedInventory = await Inventory.findById(inventory._id)
-      .populate({ path: 'sku', select: 'skuCode name' })
-      .populate({ 
-        path: 'location', 
-        select: 'locationCode layout',
-        populate: {
-          path: 'layout',
-          select: 'name'
-        }
-      });
-    
-    req.socketService.broadcastInventoryUpdate('create', populatedInventory);
-    
+    req.io.emit('inventory_updated');
     res.status(200).json(inventory);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
@@ -88,20 +75,7 @@ export const adjustInventory = async (req, res) => {
       });
     }
 
-    // Broadcast real-time inventory update
-    const populatedInventory = await Inventory.findById(inventoryItem._id)
-      .populate({ path: 'sku', select: 'skuCode name' })
-      .populate({ 
-        path: 'location', 
-        select: 'locationCode layout',
-        populate: {
-          path: 'layout',
-          select: 'name'
-        }
-      });
-    
-    req.socketService.broadcastInventoryUpdate('update', populatedInventory);
-    
+    req.io.emit('inventory_updated');
     res.status(200).json(inventoryItem);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
@@ -123,9 +97,7 @@ export const deleteInventory = async (req, res) => {
         user: req.user.id,
     });
 
-    // Broadcast real-time inventory deletion
-    req.socketService.broadcastInventoryUpdate('delete', { _id: inventoryItem._id });
-    
+    req.io.emit('inventory_updated');
     res.status(200).json({ message: 'Inventory record deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });

@@ -14,7 +14,6 @@ import SearchPage from './pages/searchPage.jsx';
 import RegisterPage from './pages/registerPage.jsx';
 import SkuDetailPage from './pages/skuDetailPage.jsx';
 import ReportsPage from './pages/reportsPage.jsx'; 
-import AdvancedAnalyticsPage from './pages/advancedAnalyticsPage.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
 import UserManagementPage from './pages/userManagementPage.jsx';
 
@@ -46,7 +45,7 @@ function App() {
           <Route path="optimizations" element={<OptimizationsPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="advanced-analytics" element={<AdvancedAnalyticsPage />} />
+          {/* Analytics route is now merged into reports */}
           <Route 
             path="admin/users" 
             element={<AdminRoute><UserManagementPage /></AdminRoute>} 
