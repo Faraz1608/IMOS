@@ -1,10 +1,12 @@
 import express from 'express';
-import { getInventoryReport } from '../controllers/reportController.js';
+import { getInventoryReport, getStockoutReport, getSlowMovingReport } from '../controllers/reportController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 router.use(protect);
 
 router.route('/inventory').get(getInventoryReport);
+router.route('/stockout').get(getStockoutReport); // New Route
+router.route('/slow-moving').get(getSlowMovingReport); // New Route
 
 export default router;

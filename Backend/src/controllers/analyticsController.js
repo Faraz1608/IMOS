@@ -42,3 +42,54 @@ export const getAgingReport = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+export const getDemandForecast = async (req, res) => {
+    try {
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        // Aggregate sales data (Goods Issues) from the last 90 days
+        const salesData = await InventoryMovement.aggregate([
+            {
+                $match: {
+                    type: 'GI', // Only count Goods Issues as sales
+                    createdAt: { $gte: ninetyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: '$sku',
+                    totalSold: { $sum: '$quantity' }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'skus',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'skuDetails'
+                }
+            },
+            { $unwind: '$skuDetails' }
+        ]);
+
+        const forecast = salesData.map(item => {
+            // Simple Moving Average: Total sold / number of periods (in this case, 3 months)
+            const monthlyAverage = item.totalSold / 3;
+            return {
+                skuId: item._id,
+                skuCode: item.skuDetails.skuCode,
+                skuName: item.skuDetails.name,
+                last90DaysSales: item.totalSold,
+                forecastedMonthlyDemand: Math.ceil(monthlyAverage),
+            };
+        });
+
+        // Sort by the highest demand forecast
+        forecast.sort((a, b) => b.forecastedMonthlyDemand - a.forecastedMonthlyDemand);
+
+        res.status(200).json(forecast);
+    } catch (error) {
+        console.error('Error fetching demand forecast:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

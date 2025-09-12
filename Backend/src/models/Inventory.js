@@ -18,6 +18,17 @@ const inventorySchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    // --- NEW FIELDS ---
+    batchNumber: {
+      type: String,
+      trim: true,
+      default: null, // Default to null if not provided
+    },
+    serialNumber: {
+      type: String,
+      trim: true,
+      default: null, // Default to null if not provided
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -29,8 +40,10 @@ const inventorySchema = new mongoose.Schema(
   }
 );
 
-// An SKU can only exist in one location once.
-inventorySchema.index({ sku: 1, location: 1 }, { unique: true });
+// --- UPDATED INDEX ---
+// This new unique index allows for granular tracking. An item is now unique
+// based on the combination of SKU, location, batch, and serial number.
+inventorySchema.index({ sku: 1, location: 1, batchNumber: 1, serialNumber: 1 }, { unique: true });
 
 const Inventory = mongoose.model('Inventory', inventorySchema);
 

@@ -1,10 +1,10 @@
 import Sku from '../models/Sku.js';
-import Inventory from '../models/Inventory.js'; // Import the Inventory model
+import Inventory from '../models/Inventory.js';
 
-// --- No changes to getSKUs, createSKU, searchSkus, getSkuById, updateSku ---
 export const getSKUs = async (req, res) => {
   try {
-    const skus = await Sku.find({});
+    // Only find SKUs created by the logged-in user
+    const skus = await Sku.find({ createdBy: req.user.id });
     res.status(200).json(skus);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
@@ -25,6 +25,10 @@ export const createSKU = async (req, res) => {
       properties,
       createdBy: req.user.id,
     });
+
+    // Notify all clients that the SKUs have been updated
+    req.io.emit('skus_updated');
+
     res.status(201).json(sku);
   } catch (error) {
     if (error.code === 11000) {
@@ -39,6 +43,7 @@ export const searchSkus = async (req, res) => {
   try {
     const regex = new RegExp(query, 'i');
     const skus = await Sku.find({
+      createdBy: req.user.id, // Ensure search is scoped to user
       $or: [{ skuCode: regex }, { name: regex }],
     }).limit(10);
     res.status(200).json(skus);
@@ -69,13 +74,16 @@ export const updateSku = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
     sku = await Sku.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    // Notify all clients that the SKUs have been updated
+    req.io.emit('skus_updated');
+
     res.status(200).json(sku);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// --- MODIFIED FUNCTION ---
 export const deleteSku = async (req, res) => {
   try {
     const sku = await Sku.findById(req.params.id);
@@ -88,11 +96,11 @@ export const deleteSku = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
-    // Before deleting the SKU, delete all inventory records referencing it
     await Inventory.deleteMany({ sku: req.params.id });
-
-    // Now, delete the SKU itself
     await sku.deleteOne();
+
+    // Notify all clients that the SKUs have been updated
+    req.io.emit('skus_updated');
 
     res.status(200).json({ message: 'SKU and associated inventory removed' });
   } catch (error) {

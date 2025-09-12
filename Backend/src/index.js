@@ -4,6 +4,8 @@ import cors from 'cors';
 import http from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
+
+// Routes
 import authRoutes from './routes/authRoutes.js';
 import layoutRoutes from './routes/layoutRoutes.js';
 import skuRoutes from './routes/skuRoutes.js';
@@ -15,6 +17,7 @@ import reportRoutes from './routes/reportRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import dispatchRoutes from './routes/dispatchRoutes.js'; // 1. Import dispatch routes
 
 connectDB();
 const app = express();
@@ -22,30 +25,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Create an HTTP server from the Express app
 const server = http.createServer(app); 
-// Attach socket.io to the server
 const io = new Server(server, { 
   cors: {
-    origin: "http://localhost:5173", // Your frontend URL
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"]
   }
 });
 
 io.on('connection', (socket) => {
   console.log('A user connected');
+  
+  // Join a room based on user ID for targeted notifications
+  const userId = socket.handshake.query.userId;
+  if (userId) {
+    socket.join(userId);
+    console.log(`User ${userId} joined their notification room.`);
+  }
+
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
 });
 
-// Make io accessible to our router
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
-
-// --- API ROUTES ---
+// API ROUTES
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/layouts', layoutRoutes);
@@ -57,10 +64,10 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/dispatches', dispatchRoutes); // 2. Add dispatch routes
 
 const PORT = process.env.PORT || 7000;
 
-// *** THE FIX: Start the http server, not the Express app ***
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

@@ -3,9 +3,10 @@ import { FiBell } from 'react-icons/fi';
 import useAuthStore from '../store/authStore';
 import { getNotifications, markAllAsRead } from '../services/notificationService';
 import toast from 'react-hot-toast';
+import io from 'socket.io-client';
 
 const NotificationBell = () => {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -23,23 +24,35 @@ const NotificationBell = () => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [token]);
+
+    // --- Real-time Notification Listener ---
+    const socket = io('http://localhost:7000', {
+      query: { userId: user?._id } // Pass user ID to backend
+    });
+
+    socket.on('new_notification', (newNotification) => {
+      toast.success(newNotification.message, { icon: '🔔' });
+      setNotifications(prev => [newNotification, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [token, user]);
 
   const handleToggle = async () => {
     setIsOpen(!isOpen);
     if (!isOpen && unreadCount > 0) {
-      // Mark all as read when opening the dropdown
       try {
         await markAllAsRead(token);
-        // Refresh notifications to show them as "read"
-        fetchNotifications();
+        // Visually mark as read without re-fetching
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       } catch (error) {
         console.error('Failed to mark notifications as read');
       }
     }
   };
 
-  // Close dropdown if clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -49,7 +62,6 @@ const NotificationBell = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownRef]);
-
 
   return (
     <div className="relative" ref={dropdownRef}>

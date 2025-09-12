@@ -5,13 +5,21 @@ import useAuthStore from '../store/authStore';
 import { getSkus, createSku, deleteSku } from '../services/skuService';
 import Modal from '../components/modal.jsx';
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi';
+import io from 'socket.io-client';
 
 const SkuPage = () => {
   const [allSkus, setAllSkus] = useState([]);
   const [filteredSkus, setFilteredSkus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newSkuData, setNewSkuData] = useState({ skuCode: '', name: '' });
+  const [newSkuData, setNewSkuData] = useState({ 
+    skuCode: '', 
+    name: '',
+    properties: {
+        dimensions: { w: '', d: '', h: '' },
+        weightKg: ''
+    }
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const { token } = useAuthStore();
 
@@ -25,7 +33,16 @@ const SkuPage = () => {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchAllSkus(); }, [token]);
+  useEffect(() => { 
+    fetchAllSkus();
+
+    const socket = io('http://localhost:7000');
+    socket.on('skus_updated', () => {
+        toast('SKU list has been updated.', { icon: '🔄' });
+        fetchAllSkus();
+    });
+    return () => { socket.disconnect(); };
+  }, [token]);
 
   useEffect(() => {
     const results = allSkus.filter(sku =>
@@ -36,7 +53,16 @@ const SkuPage = () => {
   }, [searchTerm, allSkus]);
   
   const handleInputChange = (e) => {
-    setNewSkuData({ ...newSkuData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const [parent, child] = name.split('.');
+
+    if (parent === 'dimensions' && child) {
+        setNewSkuData(prev => ({ ...prev, properties: { ...prev.properties, dimensions: { ...prev.properties.dimensions, [child]: value } } }));
+    } else if (parent === 'properties' && child) {
+        setNewSkuData(prev => ({ ...prev, properties: { ...prev.properties, [child]: value } }));
+    } else {
+        setNewSkuData({ ...newSkuData, [name]: value });
+    }
   };
 
   const handleAddSku = async (e) => {
@@ -45,7 +71,7 @@ const SkuPage = () => {
       await createSku(newSkuData, token);
       toast.success('SKU created successfully!');
       setIsModalOpen(false);
-      setNewSkuData({ skuCode: '', name: '' });
+      setNewSkuData({ skuCode: '', name: '', properties: { dimensions: { w: '', d: '', h: '' }, weightKg: '' } });
       fetchAllSkus();
     } catch (error) { toast.error('Failed to create SKU.'); }
   };
@@ -63,7 +89,7 @@ const SkuPage = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Products/SKU's</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Products/SKUs</h1>
         <div className="flex items-center gap-4">
            <div className="relative">
              <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
@@ -116,6 +142,19 @@ const SkuPage = () => {
               <label htmlFor="name" className="block text-sm font-medium mb-1">Product Name</label>
               <input type="text" name="name" id="name" value={newSkuData.name} onChange={handleInputChange} required className="w-full p-2 border rounded-md"/>
             </div>
+            <fieldset className="border p-2 rounded-md">
+                <legend className="text-sm font-medium px-1">Properties</legend>
+                <div className="space-y-2 p-2">
+                    <label className="block text-sm font-medium">Dimensions (cm)</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        <input type="number" name="dimensions.w" value={newSkuData.properties.dimensions.w} onChange={handleInputChange} placeholder="Width" className="w-full p-2 border rounded-md"/>
+                        <input type="number" name="dimensions.d" value={newSkuData.properties.dimensions.d} onChange={handleInputChange} placeholder="Depth" className="w-full p-2 border rounded-md"/>
+                        <input type="number" name="dimensions.h" value={newSkuData.properties.dimensions.h} onChange={handleInputChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
+                    </div>
+                    <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">Weight (Kg)</label>
+                    <input type="number" id="properties.weightKg" name="properties.weightKg" value={newSkuData.properties.weightKg} onChange={handleInputChange} className="w-full p-2 border rounded-md"/>
+                </div>
+            </fieldset>
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">Create New SKU</button>
           </div>
@@ -126,3 +165,4 @@ const SkuPage = () => {
 };
 
 export default SkuPage;
+

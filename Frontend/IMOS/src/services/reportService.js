@@ -6,3 +6,18 @@ export const getInventoryReport = (token) => {
     responseType: 'blob', // Important for file downloads
   });
 };
+
+export const getStockoutReport = (token) => {
+  return api.get('/reports/stockout', {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob',
+  });
+};
+
+export const getSlowMovingReport = (token) => {
+  return api.get('/reports/slow-moving', {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob',
+  });
+};
+

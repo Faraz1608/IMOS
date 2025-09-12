@@ -16,6 +16,7 @@ import SkuDetailPage from './pages/skuDetailPage.jsx';
 import ReportsPage from './pages/reportsPage.jsx'; 
 import AdminRoute from './components/AdminRoute.jsx';
 import UserManagementPage from './pages/userManagementPage.jsx';
+import DemandForecastingPage from './pages/demandForecasting.jsx'; // 1. Import the new page
 
 function App() {
 
@@ -43,9 +44,9 @@ function App() {
           <Route path="skus/:id" element={<SkuDetailPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="optimizations" element={<OptimizationsPage />} />
+          <Route path="forecasting" element={<DemandForecastingPage />} /> {/* 2. Add the new route */}
           <Route path="search" element={<SearchPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          {/* Analytics route is now merged into reports */}
           <Route 
             path="admin/users" 
             element={<AdminRoute><UserManagementPage /></AdminRoute>} 

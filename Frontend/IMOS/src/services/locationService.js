@@ -21,3 +21,10 @@ export const deleteLocation = (layoutId, locationId, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+// --- NEW FUNCTION ---
+export const getLocationStats = (layoutId, locationId, token) => {
+  return api.get(`/layouts/${layoutId}/locations/${locationId}/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};

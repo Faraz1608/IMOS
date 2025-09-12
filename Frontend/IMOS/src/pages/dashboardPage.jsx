@@ -110,8 +110,12 @@ const DashboardPage = () => {
             <tbody>
                 {inventoryStatus.map((item) => (
                     <tr key={item._id} className="border-b">
-                        <td className="py-3 px-4">{item.items.map(i => i.sku.name).join(', ')}</td>
-                        <td className="py-3 px-4">{item.status}</td>
+                        <td className="py-3 px-4">
+  {item.items
+    .map(i => i.sku?.name)       // Safely access name, returns undefined if sku is null
+    .filter(Boolean)            // Removes any null or undefined entries
+    .join(', ')}
+</td>
                         <td className="py-3 px-4">{item.approvedBy || 'N/A'}</td>
                     </tr>
                 ))}

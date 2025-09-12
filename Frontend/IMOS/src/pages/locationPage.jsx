@@ -2,60 +2,140 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
-import { getLocationsByLayout, createLocation, updateLocation, deleteLocation } from '../services/locationService.js';
+import { getLocationsByLayout, createLocation, updateLocation, deleteLocation, getLocationStats } from '../services/locationService.js';
 import Modal from '../components/modal.jsx';
-import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiSearch, FiPercent } from 'react-icons/fi';
+import io from 'socket.io-client';
 
 const LocationsPage = () => {
   const { layoutId } = useParams();
   const [locations, setLocations] = useState([]);
+  const [locationStats, setLocationStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [currentLocation, setCurrentLocation] = useState(null);
+  
+  // State for the form
   const [locationCode, setLocationCode] = useState('');
+  const [properties, setProperties] = useState({
+    dimensions: { w: '', d: '', h: '' },
+    weightCapacityKg: '',
+    temperature: 'Ambient',
+  });
+
   const { token } = useAuthStore();
 
-  const fetchLocations = async () => {
+  const fetchLocationsAndStats = async () => {
     try {
       setLoading(true);
       const response = await getLocationsByLayout(layoutId, token);
       setLocations(response.data);
-    } catch (error) { toast.error('Could not fetch locations.');
-    } finally { setLoading(false); }
+
+      // Fetch stats for each location
+      const statsPromises = response.data.map(loc => getLocationStats(layoutId, loc._id, token));
+      const statsResults = await Promise.all(statsPromises);
+      
+      const statsMap = statsResults.reduce((acc, result) => {
+          acc[result.data.locationId] = result.data;
+          return acc;
+      }, {});
+      setLocationStats(statsMap);
+
+    } catch (error) { 
+      toast.error('Could not fetch locations or their stats.');
+    } finally { 
+      setLoading(false); 
+    }
   };
 
-  useEffect(() => { fetchLocations(); }, [layoutId, token]);
+  useEffect(() => {
+    fetchLocationsAndStats();
 
+    const socket = io('http://localhost:7000');
+    socket.on('locations_updated', () => {
+        toast('Locations have been updated.', { icon: '🔄' });
+        fetchLocationsAndStats();
+    });
+    return () => { socket.disconnect(); };
+  }, [layoutId, token]);
+
+  const handlePropertiesChange = (e) => {
+    const { name, value } = e.target;
+    const [parent, child] = name.split('.');
+    
+    setProperties(prev => {
+      if (child) {
+        return { ...prev, [parent]: { ...prev[parent], [child]: value } };
+      }
+      return { ...prev, [name]: value };
+    });
+  };
+
+  const resetFormState = () => {
+    setLocationCode('');
+    setProperties({
+      dimensions: { w: '', d: '', h: '' },
+      weightCapacityKg: '',
+      temperature: 'Ambient',
+    });
+    setCurrentLocation(null);
+  };
+  
   const openAddModal = () => {
-    setModalMode('add'); setLocationCode('');
-    setCurrentLocation(null); setIsModalOpen(true);
+    resetFormState();
+    setModalMode('add');
+    setIsModalOpen(true);
   };
 
   const openEditModal = (location) => {
-    setModalMode('edit'); setLocationCode(location.locationCode);
-    setCurrentLocation(location); setIsModalOpen(true);
+    resetFormState();
+    setModalMode('edit');
+    setCurrentLocation(location);
+    setLocationCode(location.locationCode);
+    setProperties(location.properties || { dimensions: { w: '', d: '', h: '' }, weightCapacityKg: '', temperature: 'Ambient' });
+    setIsModalOpen(true);
   };
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
+    const locationData = { locationCode, properties };
+    
     const action = modalMode === 'add'
-      ? createLocation(layoutId, { locationCode }, token)
-      : updateLocation(layoutId, currentLocation._id, { locationCode }, token);
+      ? createLocation(layoutId, locationData, token)
+      : updateLocation(layoutId, currentLocation._id, locationData, token);
+      
     try {
       await action;
       toast.success(`Location ${modalMode === 'add' ? 'created' : 'updated'}!`);
-      setIsModalOpen(false); fetchLocations();
-    } catch (error) { toast.error(`Failed to ${modalMode} location.`); }
+      setIsModalOpen(false);
+    } catch (error) { 
+      toast.error(`Failed to ${modalMode} location.`); 
+    }
   };
 
   const handleDelete = async (locationId) => {
-    if (window.confirm('Are you sure?')) {
+    if (window.confirm('Are you sure? This will delete the location and all inventory within it.')) {
       try {
         await deleteLocation(layoutId, locationId, token);
-        toast.success('Location deleted.'); fetchLocations();
-      } catch (error) { toast.error('Failed to delete location.'); }
+        toast.success('Location deleted.');
+      } catch (error) { 
+        toast.error('Failed to delete location.'); 
+      }
     }
+  };
+  
+  const UtilizationBar = ({ utilization }) => {
+    const percent = parseFloat(utilization) || 0;
+    let bgColor = 'bg-green-500';
+    if (percent > 75) bgColor = 'bg-yellow-500';
+    if (percent > 90) bgColor = 'bg-red-500';
+
+    return (
+        <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className={`${bgColor} h-2.5 rounded-full`} style={{ width: `${percent}%` }}></div>
+        </div>
+    );
   };
 
   return (
@@ -77,15 +157,28 @@ const LocationsPage = () => {
         {loading ? <p>Loading...</p> : (
           locations.length > 0 ? (
             locations.map((location) => (
-              <div key={location._id} className="p-4 bg-purple-50 rounded-lg flex justify-between items-center border border-purple-100">
-                <p className="font-mono text-gray-800">{location.locationCode}</p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => openEditModal(location)} className="p-2 text-blue-600 rounded-lg hover:bg-blue-100"><FiEdit size={16}/></button>
-                  <button onClick={() => handleDelete(location._id)} className="p-2 text-red-600 rounded-lg hover:bg-red-100"><FiTrash2 size={16}/></button>
+              <div key={location._id} className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <p className="font-mono font-bold text-gray-800">{location.locationCode}</p>
+                        <p className="text-xs text-gray-500">
+                            Dims: {location.properties?.dimensions?.w}x{location.properties?.dimensions?.d}x{location.properties?.dimensions?.h}cm | 
+                            Max Weight: {location.properties?.weightCapacityKg}kg
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => openEditModal(location)} className="p-2 text-blue-600 rounded-lg hover:bg-blue-100"><FiEdit size={16}/></button>
+                        <button onClick={() => handleDelete(location._id)} className="p-2 text-red-600 rounded-lg hover:bg-red-100"><FiTrash2 size={16}/></button>
+                    </div>
+                </div>
+                <div className="mt-3 flex items-center gap-3">
+                    <FiPercent className="text-gray-400" />
+                    <UtilizationBar utilization={locationStats[location._id]?.spaceUtilization} />
+                    <span className="text-sm font-medium text-gray-600 w-16 text-right">{locationStats[location._id]?.spaceUtilization || '0.00%'}</span>
                 </div>
               </div>
             ))
-          ) : ( <p className="text-center text-gray-500 py-8">No locations found.</p> )
+          ) : ( <p className="text-center text-gray-500 py-8">No locations found for this layout.</p> )
         )}
       </div>
 
@@ -94,6 +187,26 @@ const LocationsPage = () => {
           <div>
             <label htmlFor="locationCode" className="block text-sm font-medium mb-1">Location Code (e.g. A01-R01-S01)</label>
             <input type="text" id="locationCode" value={locationCode} onChange={(e) => setLocationCode(e.target.value)} required className="w-full p-2 border rounded-md"/>
+          </div>
+          <fieldset className="border p-2 rounded-md">
+            <legend className="text-sm font-medium px-1">Dimensions (cm)</legend>
+            <div className="grid grid-cols-3 gap-2">
+                <input type="number" name="dimensions.w" value={properties.dimensions.w} onChange={handlePropertiesChange} placeholder="Width" className="w-full p-2 border rounded-md"/>
+                <input type="number" name="dimensions.d" value={properties.dimensions.d} onChange={handlePropertiesChange} placeholder="Depth" className="w-full p-2 border rounded-md"/>
+                <input type="number" name="dimensions.h" value={properties.dimensions.h} onChange={handlePropertiesChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
+            </div>
+          </fieldset>
+          <div>
+            <label htmlFor="weightCapacityKg" className="block text-sm font-medium mb-1">Weight Capacity (Kg)</label>
+            <input type="number" id="weightCapacityKg" name="weightCapacityKg" value={properties.weightCapacityKg} onChange={handlePropertiesChange} className="w-full p-2 border rounded-md"/>
+          </div>
+          <div>
+            <label htmlFor="temperature" className="block text-sm font-medium mb-1">Temperature</label>
+            <select id="temperature" name="temperature" value={properties.temperature} onChange={handlePropertiesChange} className="w-full p-2 border rounded-md">
+              <option>Ambient</option>
+              <option>Chilled</option>
+              <option>Frozen</option>
+            </select>
           </div>
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg">{modalMode === 'add' ? 'Create New Location' : 'Save Changes'}</button>
@@ -105,3 +218,4 @@ const LocationsPage = () => {
 };
 
 export default LocationsPage;
+

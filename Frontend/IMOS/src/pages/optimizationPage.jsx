@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { runAbcAnalysis, getSlottingRecommendations, generatePickingRoute } from '../services/optimizationService.js';
-import { FiArrowRight, FiPlayCircle, FiList, FiNavigation } from 'react-icons/fi';
+import { moveInventory } from '../services/inventoryService.js';
+import { FiArrowRight, FiPlayCircle, FiList, FiNavigation, FiCheckCircle } from 'react-icons/fi';
 
 const OptimizationsPage = () => {
   const { token } = useAuthStore();
   const [recommendations, setRecommendations] = useState([]);
   const [loadingAbc, setLoadingAbc] = useState(false);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [movingItem, setMovingItem] = useState(null);
   
   const [pickingItems, setPickingItems] = useState('');
   const [pickingRoute, setPickingRoute] = useState([]);
@@ -16,10 +18,10 @@ const OptimizationsPage = () => {
 
   const handleRunAbc = async () => {
     setLoadingAbc(true);
-    const toastId = toast.loading('Running ABC analysis...');
+    const toastId = toast.loading('Running ABC analysis based on last 90 days of movement...');
     try {
       const res = await runAbcAnalysis(token);
-      toast.success(res.data.message, { id: toastId });
+      toast.success(res.data.message, { id: toastId, duration: 4000 });
     } catch (error) {
       toast.error('Failed to run analysis.', { id: toastId });
     } finally {
@@ -29,15 +31,34 @@ const OptimizationsPage = () => {
   
   const handleFetchRecommendations = async () => {
     setLoadingRecs(true);
-    const toastId = toast.loading('Fetching recommendations...');
+    const toastId = toast.loading('Generating intelligent slotting recommendations...');
     try {
       const res = await getSlottingRecommendations(token);
       setRecommendations(res.data);
-      toast.success('Recommendations fetched.', { id: toastId });
+      if (res.data.length === 0) {
+          toast.success('No slotting recommendations at this time. Your warehouse is optimally slotted!', { id: toastId, duration: 4000, icon: <FiCheckCircle/> });
+      } else {
+          toast.success(`${res.data.length} recommendation(s) found.`, { id: toastId });
+      }
     } catch (error) {
       toast.error('Failed to fetch recommendations.', { id: toastId });
     } finally {
       setLoadingRecs(false);
+    }
+  };
+
+  const handleMoveItem = async (inventoryId, newLocationId) => {
+    setMovingItem(inventoryId);
+    const toastId = toast.loading('Executing inventory move...');
+    try {
+        await moveInventory(inventoryId, { newLocationId }, token);
+        toast.success('Item moved successfully!', { id: toastId });
+        // Refresh recommendations after a successful move
+        handleFetchRecommendations();
+    } catch (error) {
+        toast.error('Failed to move item.', { id: toastId });
+    } finally {
+        setMovingItem(null);
     }
   };
 
@@ -89,10 +110,19 @@ const OptimizationsPage = () => {
             {recommendations.length > 0 && (
               <div className="mt-4 space-y-2">
                 {recommendations.map((rec, index) => (
-                  <div key={index} className="p-3 bg-blue-50 rounded-md text-sm border border-blue-200">
-                    <p className="font-semibold text-gray-700">Move SKU: <span className="font-mono text-blue-800">{rec.skuToMove}</span></p>
-                    <p className="text-gray-500">From: <span className="font-mono">{rec.currentLocation}</span></p>
-                    <p className="text-blue-700 font-medium">Suggestion: {rec.recommendation}</p>
+                   <div key={index} className="p-3 bg-blue-50 rounded-md border border-blue-200 flex justify-between items-center">
+                    <div>
+                        <p className="font-semibold text-gray-700">Move SKU: <span className="font-mono text-blue-800">{rec.skuToMove}</span></p>
+                        <p className="text-gray-500 text-sm">From: <span className="font-mono">{rec.currentLocation}</span></p>
+                        <p className="text-blue-700 font-medium text-sm">{rec.recommendation}</p>
+                    </div>
+                    <button
+                        onClick={() => handleMoveItem(rec.inventoryId, rec.newLocationId)}
+                        disabled={movingItem === rec.inventoryId}
+                        className="px-3 py-1.5 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 disabled:bg-gray-400"
+                    >
+                        {movingItem === rec.inventoryId ? 'Moving...' : 'Execute Move'}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -142,3 +172,4 @@ const OptimizationsPage = () => {
 };
 
 export default OptimizationsPage;
+

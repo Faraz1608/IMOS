@@ -14,11 +14,13 @@ const locationSchema = new mongoose.Schema(
     },
     properties: {
       dimensions: {
-        w: { type: Number },
-        d: { type: Number },
-        h: { type: Number },
+        w: { type: Number, default: 0 },
+        d: { type: Number, default: 0 },
+        h: { type: Number, default: 0 },
       },
-      weightCapacityKg: { type: Number },
+      weightCapacityKg: { type: Number, default: 0 },
+      temperature: { type: String, default: 'Ambient' },
+      humidity: { type: String, default: 'Normal' },
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

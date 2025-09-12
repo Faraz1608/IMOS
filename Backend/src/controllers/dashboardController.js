@@ -11,8 +11,8 @@ import Inventory from '../models/Inventory.js';
 export const getDashboardStats = async (req, res) => {
   try {
     // --- KPI Card Stats ---
-    const totalSkus = await Sku.countDocuments();
-    const pendingDispatches = await Dispatch.countDocuments({ status: 'Pending Dispatch' });
+    const totalSkus = await Sku.countDocuments({ createdBy: req.user.id });
+    const pendingDispatches = await Dispatch.countDocuments({ approvedBy: req.user.id, status: 'Pending Dispatch' });
     
     // --- Role Distribution ---
     const userRoles = await User.aggregate([
@@ -20,14 +20,27 @@ export const getDashboardStats = async (req, res) => {
     ]);
     const activeUsers = userRoles.reduce((acc, role) => acc + role.count, 0);
 
-    // --- Layout Space Utilization ---
+    // --- Volumetric Layout Space Utilization ---
     const layouts = await Layout.find({ createdBy: req.user.id });
     const layoutStatsPromises = layouts.map(async (layout) => {
-      const totalLocations = await Location.countDocuments({ layout: layout._id });
-      const occupiedLocationsResult = await Inventory.distinct('location', { 
-          location: { $in: await Location.find({ layout: layout._id }).distinct('_id') } 
+      const locations = await Location.find({ layout: layout._id });
+      let totalLayoutCapacity = 0;
+      locations.forEach(loc => {
+          if (loc.properties && loc.properties.dimensions) {
+              totalLayoutCapacity += (loc.properties.dimensions.w || 0) * (loc.properties.dimensions.d || 0) * (loc.properties.dimensions.h || 0);
+          }
       });
-      const spaceUtilization = totalLocations > 0 ? (occupiedLocationsResult.length / totalLocations) * 100 : 0;
+
+      const inventoryInLayout = await Inventory.find({ location: { $in: locations.map(l => l._id) } }).populate('sku');
+      let totalOccupiedVolume = 0;
+      inventoryInLayout.forEach(item => {
+          if (item.sku && item.sku.properties && item.sku.properties.dimensions) {
+              const skuVolume = (item.sku.properties.dimensions.w || 0) * (item.sku.properties.dimensions.d || 0) * (item.sku.properties.dimensions.h || 0);
+              totalOccupiedVolume += skuVolume * item.quantity;
+          }
+      });
+
+      const spaceUtilization = totalLayoutCapacity > 0 ? (totalOccupiedVolume / totalLayoutCapacity) * 100 : 0;
       return {
         name: layout.name,
         utilization: parseFloat(spaceUtilization.toFixed(2)),
@@ -37,11 +50,12 @@ export const getDashboardStats = async (req, res) => {
 
     // --- Recent Transactions ---
     const recentTransactions = await Transaction.aggregate([
+        { $match: { user: req.user._id } },
         { $group: { _id: '$type', count: { $sum: 1 } } }
     ]);
 
     // --- Inventory Status (Recent Dispatches) ---
-    const inventoryStatus = await Dispatch.find()
+    const inventoryStatus = await Dispatch.find({ approvedBy: req.user.id })
         .sort({ createdAt: -1 })
         .limit(3)
         .populate('items.sku', 'name');
@@ -61,3 +75,4 @@ export const getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
