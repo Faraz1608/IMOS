@@ -3,16 +3,17 @@ import Location from '../models/Location.js';
 import Inventory from '../models/Inventory.js';
 import Sku from '../models/Sku.js';
 
-// --- getLayouts, createLayout, getLayoutById, updateLayout, deleteLayout functions remain the same ---
+// Get all layouts in the system
 export const getLayouts = async (req, res) => {
   try {
-    const layouts = await Layout.find({ createdBy: req.user.id });
+    const layouts = await Layout.find({}); // REMOVED: User-specific filter
     res.status(200).json(layouts);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
+// Create a layout, associated with the creator for auditing
 export const createLayout = async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -22,9 +23,8 @@ export const createLayout = async (req, res) => {
     const layout = await Layout.create({
       name,
       description,
-      createdBy: req.user.id,
+      createdBy: req.user.id, // Keep creator for auditing
     });
-    req.io.emit('layouts_updated');
     res.status(201).json(layout);
   } catch (error) {
     if (error.code === 11000) {
@@ -34,11 +34,12 @@ export const createLayout = async (req, res) => {
   }
 };
 
+// Get a layout by its ID
 export const getLayoutById = async (req, res) => {
   try {
     const layout = await Layout.findById(req.params.id);
-    if (!layout || layout.createdBy.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
+    if (!layout) { // REMOVED: Ownership check
+      return res.status(404).json({ message: 'Layout not found' });
     }
     res.status(200).json(layout);
   } catch (error) {
@@ -46,92 +47,94 @@ export const getLayoutById = async (req, res) => {
   }
 };
 
+// Update any layout
 export const updateLayout = async (req, res) => {
   try {
     const { name, description } = req.body;
-    let layout = await Layout.findById(req.params.id);
-    if (!layout || layout.createdBy.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
+    const layoutId = req.params.id;
+
+    const layout = await Layout.findById(layoutId);
+
+    if (!layout) { // REMOVED: Ownership check
+      return res.status(404).json({ message: 'Layout not found' });
     }
+
     if (name && name !== layout.name) {
-      const existingLayout = await Layout.findOne({ name: name, createdBy: req.user.id });
+      const existingLayout = await Layout.findOne({ name: name });
       if (existingLayout) {
         return res.status(400).json({ message: 'Another layout with this name already exists.' });
       }
     }
+
     layout.name = name || layout.name;
     layout.description = description === undefined ? layout.description : description;
     const updatedLayout = await layout.save();
-    req.io.emit('layouts_updated');
+
     res.status(200).json(updatedLayout);
   } catch (error) {
+    console.error('Error updating layout:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
+// Delete any layout
 export const deleteLayout = async (req, res) => {
   try {
     const layout = await Layout.findById(req.params.id);
-    if (!layout || layout.createdBy.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
+    if (!layout) { // REMOVED: Ownership check
+      return res.status(404).json({ message: 'Layout not found' });
     }
-    
-    // Advanced deletion: Also remove associated locations and inventory
-    const locations = await Location.find({ layout: req.params.id });
-    const locationIds = locations.map(l => l._id);
-    await Inventory.deleteMany({ location: { $in: locationIds } });
-    await Location.deleteMany({ layout: req.params.id });
+    // Note: Add logic here to handle associated locations and inventory before deleting
     await layout.deleteOne();
-
-    req.io.emit('layouts_updated');
-    res.status(200).json({ message: 'Layout and all associated data removed' });
+    res.status(200).json({ message: 'Layout removed' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// --- Upgraded getLayoutStats function ---
+// Get layout stats (now system-wide)
 export const getLayoutStats = async (req, res) => {
   try {
     const layoutId = req.params.id;
     const layout = await Layout.findById(layoutId);
 
-    if (!layout || layout.createdBy.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
+    if (!layout) { // REMOVED: Ownership check
+        return res.status(404).json({ message: 'Layout not found' });
     }
 
-    const locations = await Location.find({ layout: layoutId });
-    const locationIds = locations.map(l => l._id);
+    const layoutLocations = await Location.find({ layout: layoutId });
+    if (layoutLocations.length === 0) {
+        return res.status(200).json({ layoutName: layout.name, utilization: 0 });
+    }
 
-    // Calculate total volumetric capacity of the layout
-    const totalCapacity = locations.reduce((acc, loc) => {
-        const dims = loc.properties?.dimensions;
-        if (dims && dims.w > 0 && dims.d > 0 && dims.h > 0) {
-            return acc + (dims.w * dims.d * dims.h);
+    let totalLayoutCapacity = 0;
+    for (const loc of layoutLocations) {
+        const props = loc.properties;
+        if (props && props.dimensions) {
+            totalLayoutCapacity += (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
         }
-        return acc;
-    }, 0);
-    
-    // Calculate total volume of SKUs stored in the layout
-    const inventoryInLayout = await Inventory.find({ location: { $in: locationIds } }).populate({
-        path: 'sku',
-        select: 'properties'
-    });
-    
-    const occupiedVolume = inventoryInLayout.reduce((acc, item) => {
-        const skuDims = item.sku?.properties?.dimensions;
-        if (skuDims && skuDims.w > 0 && skuDims.d > 0 && skuDims.h > 0) {
-            return acc + (skuDims.w * skuDims.d * skuDims.h * item.quantity);
-        }
-        return acc;
-    }, 0);
+    }
 
-    const utilization = totalCapacity > 0 ? (occupiedVolume / totalCapacity) * 100 : 0;
+    if (totalLayoutCapacity === 0) {
+        return res.status(200).json({ layoutName: layout.name, utilization: 0 });
+    }
+
+    const locationIds = layoutLocations.map(loc => loc._id);
+    const inventoryInLayout = await Inventory.find({ location: { $in: locationIds } }).populate('sku');
+
+    let totalOccupiedVolume = 0;
+    for (const item of inventoryInLayout) {
+        if (item.sku && item.sku.properties && item.sku.properties.dimensions) {
+            const skuVolume = (item.sku.properties.dimensions.w || 0) * (item.sku.properties.dimensions.d || 0) * (item.sku.properties.dimensions.h || 0);
+            totalOccupiedVolume += skuVolume * item.quantity;
+        }
+    }
+
+    const utilization = (totalOccupiedVolume / totalLayoutCapacity) * 100;
 
     res.status(200).json({
       layoutName: layout.name,
-      totalLocations: locations.length,
-      spaceUtilization: `${utilization.toFixed(2)}%`,
+      utilization: parseFloat(utilization.toFixed(2)),
     });
   } catch (error) {
     console.error('Error in getLayoutStats:', error);

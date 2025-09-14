@@ -3,16 +3,21 @@ import Location from '../models/Location.js';
 import Inventory from '../models/Inventory.js';
 import InventoryMovement from '../models/InventoryMovement.js';
 
+// Run ABC analysis on all SKUs in the system
 export const runAbcAnalysis = async (req, res) => {
   try {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const movements = await InventoryMovement.aggregate([
-      { $match: { createdBy: req.user._id, createdAt: { $gte: ninetyDaysAgo } } },
+      { $match: { createdAt: { $gte: ninetyDaysAgo } } },
       { $group: { _id: '$sku', totalMovement: { $sum: '$quantity' } } },
       { $sort: { totalMovement: -1 } }
     ]);
+
+    if (movements.length === 0) {
+        return res.status(200).json({ message: 'No inventory movements found in the last 90 days to analyze.' });
+    }
 
     const totalMovementSum = movements.reduce((acc, sku) => acc + sku.totalMovement, 0);
 
@@ -30,6 +35,10 @@ export const runAbcAnalysis = async (req, res) => {
       await Sku.findByIdAndUpdate(skuMovement._id, { velocity });
     }
 
+    // Set remaining SKUs with no movement to 'C'
+    const movedSkuIds = movements.map(m => m._id);
+    await Sku.updateMany({ _id: { $nin: movedSkuIds } }, { velocity: 'C' });
+
     res.status(200).json({ message: 'ABC Analysis completed successfully based on the last 90 days of movement.' });
   } catch (error) {
     console.error('Error in ABC Analysis:', error);
@@ -37,9 +46,10 @@ export const runAbcAnalysis = async (req, res) => {
   }
 };
 
+// Get slotting recommendations for the entire warehouse
 export const getSlottingRecommendations = async (req, res) => {
   try {
-    const mislocatedInventory = await Inventory.find({ createdBy: req.user.id })
+    const mislocatedInventory = await Inventory.find()
       .populate({
         path: 'sku',
         match: { velocity: 'A' },
@@ -54,12 +64,11 @@ export const getSlottingRecommendations = async (req, res) => {
     const itemsToMove = mislocatedInventory.filter(item => item.sku && item.location);
 
     if (itemsToMove.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json([]); // Return empty array if no recommendations
     }
 
-    const occupiedLocations = await Inventory.distinct('location', { createdBy: req.user.id });
+    const occupiedLocations = await Inventory.distinct('location');
     const availableOptimalLocations = await Location.find({
-      createdBy: req.user.id,
       _id: { $nin: occupiedLocations },
       locationCode: /^A01/
     });
@@ -69,14 +78,10 @@ export const getSlottingRecommendations = async (req, res) => {
       const suitableLocation = availableOptimalLocations.find(loc => {
         const skuProps = item.sku.properties;
         const locProps = loc.properties;
-
-        if (!skuProps?.dimensions || !locProps?.dimensions) return false;
-
-        const dimsFit = (skuProps.dimensions.w <= locProps.dimensions.w * 0.95) &&
-                        (skuProps.dimensions.d <= locProps.dimensions.d * 0.95) &&
-                        (skuProps.dimensions.h <= locProps.dimensions.h * 0.95);
-
-        const weightOk = (skuProps.weightKg <= locProps.weightCapacityKg);
+        const dimsFit = (skuProps?.dimensions?.w <= locProps?.dimensions?.w * 0.95) &&
+                        (skuProps?.dimensions?.d <= locProps?.dimensions?.d * 0.95) &&
+                        (skuProps?.dimensions?.h <= locProps?.dimensions?.h * 0.95);
+        const weightOk = (skuProps?.weightKg <= locProps?.weightCapacityKg);
         return dimsFit && weightOk;
       });
 
@@ -89,9 +94,7 @@ export const getSlottingRecommendations = async (req, res) => {
           inventoryId: item._id
         });
         const index = availableOptimalLocations.findIndex(loc => loc._id.equals(suitableLocation._id));
-        if (index > -1) {
-          availableOptimalLocations.splice(index, 1);
-        }
+        availableOptimalLocations.splice(index, 1);
       }
     }
     res.status(200).json(recommendations);
@@ -101,22 +104,22 @@ export const getSlottingRecommendations = async (req, res) => {
   }
 };
 
+// Generate picking route (already system-wide)
 export const generatePickingRoute = async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items } = req.body; 
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'An array of items is required.' });
     }
 
-    const skuCodes = items.map(i => i.skuCode);
-    const skus = await Sku.find({ createdBy: req.user.id, skuCode: { $in: skuCodes } }).select('_id');
-    const skuIds = skus.map(s => s._id);
+    const inventoryLocations = await Inventory.find({
+      'sku': { $in: await Sku.find({ 'skuCode': { $in: items.map(i => i.skuCode) } }).distinct('_id') }
+    }).populate('location');
 
-    const inventoryLocations = await Inventory.find({ createdBy: req.user.id, sku: { $in: skuIds } })
-      .populate('location', 'locationCode');
-      
-    const uniqueLocations = [...new Set(inventoryLocations.map(inv => inv.location.locationCode))];
-    const pickingRoute = uniqueLocations.sort();
+    const pickingRoute = inventoryLocations
+      .map(inv => inv.location.locationCode)
+      .sort();
 
     res.status(200).json({ pickingRoute });
   } catch (error) {
@@ -124,4 +127,3 @@ export const generatePickingRoute = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-

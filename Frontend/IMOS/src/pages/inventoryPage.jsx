@@ -11,7 +11,7 @@ import io from 'socket.io-client';
 
 const InventoryPage = () => {
   const { token } = useAuthStore();
-  const [inventory, setInventory] = useState([]);
+  const [inventory, setNewInventory] = useState([]);
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +36,7 @@ const InventoryPage = () => {
       setLoading(true);
       const res = await getInventory(token);
       const inventoryData = Array.isArray(res.data) ? res.data : [];
-      setInventory(inventoryData);
+      setNewInventory(inventoryData);
       setFilteredInventory(inventoryData);
     } catch (error) {
       toast.error("Could not fetch inventory.");
