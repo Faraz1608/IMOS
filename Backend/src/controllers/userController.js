@@ -1,6 +1,11 @@
 import User from '../models/User.js';
 
-// @desc    Get all users (Admin only)
+/**
+ * User Controller
+ * Handles user management: fetching users and updating roles (Admin only)
+ */
+
+// @desc    Get all users (excluding passwords) - Admin only
 // @route   GET /api/users
 export const getUsers = async (req, res) => {
   try {
@@ -12,7 +17,7 @@ export const getUsers = async (req, res) => {
   }
 };
 
-// @desc    Update a user's role (Admin only)
+// @desc    Update a user's role - Admin only
 // @route   PUT /api/users/:id/role
 export const updateUserRole = async (req, res) => {
   try {

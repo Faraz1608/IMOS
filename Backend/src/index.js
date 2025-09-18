@@ -11,21 +11,25 @@ import layoutRoutes from './routes/layoutRoutes.js';
 import skuRoutes from './routes/skuRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import optimizationRoutes from './routes/optimizationRoutes.js';
-import searchRoutes from './routes/searchRoutes.js';  
+import searchRoutes from './routes/searchRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
-import dispatchRoutes from './routes/dispatchRoutes.js'; // 1. Import dispatch routes
+import dispatchRoutes from './routes/dispatchRoutes.js';
 
+// Connect to MongoDB
 connectDB();
+
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-const server = http.createServer(app); 
+// Create HTTP server and Socket.io instance
+const server = http.createServer(app);
 const io = new Server(server, { 
   cors: {
     origin: "http://localhost:5173",
@@ -33,10 +37,11 @@ const io = new Server(server, {
   }
 });
 
+// Socket.io connection
 io.on('connection', (socket) => {
   console.log('A user connected');
-  
-  // Join a room based on user ID for targeted notifications
+
+  // Join a room for targeted notifications using user ID
   const userId = socket.handshake.query.userId;
   if (userId) {
     socket.join(userId);
@@ -48,11 +53,13 @@ io.on('connection', (socket) => {
   });
 });
 
+// Make io accessible in all routes
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
-// API ROUTES
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/layouts', layoutRoutes);
@@ -64,10 +71,10 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/dispatches', dispatchRoutes); // 2. Add dispatch routes
+app.use('/api/dispatches', dispatchRoutes);
 
+// Start server
 const PORT = process.env.PORT || 7000;
-
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

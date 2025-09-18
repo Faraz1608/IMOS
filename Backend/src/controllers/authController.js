@@ -1,19 +1,26 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
-// @desc    Register a new user
-// @route   POST /api/auth/register
+
+/**
+ * @desc   Register a new user
+ * @route  POST /api/auth/register
+ * @access Public
+ */
 export const registerUser = async (req, res) => {
   const { username, email, password, role } = req.body;
 
   try {
+    // Check if email or username already exists
     let user = await User.findOne({ $or: [{ email }, { username }] });
     if (user) {
       return res.status(400).json({ message: 'User with that email or username already exists' });
     }
 
+    // Create new user instance
     user = new User({ username, email, password, role });
 
+    // Hash password before saving
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
@@ -24,29 +31,32 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Authenticate user & get token
-// @route   POST /api/auth/login
+/**
+ * @desc   Authenticate user & return JWT token
+ * @route  POST /api/auth/login
+ * @access Public
+ */
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 1. Find the user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // 2. Compare the plain-text password with the hashed password
+    // Compare entered password with hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    // 3. If they match, create and send the token
+    // JWT payload contains minimal info (id + role)
     const payload = {
       user: { id: user.id, role: user.role },
     };
 
+    // Sign token with 24h expiry
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
