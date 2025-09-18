@@ -1,34 +1,8 @@
 import api from './api';
 
-export const getSkus = (token) => {
-  return api.get('/skus', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-
-export const createSku = (skuData, token) => {
-  return api.post('/skus', skuData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-
-export const searchSkus = (query, token) => {
-  return api.get(`/skus/search?q=${query}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-export const getSkuById = (id, token) => {
-  return api.get(`/skus/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-export const updateSku = (id, skuData, token) => {
-  return api.put(`/skus/${id}`, skuData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-export const deleteSku = (id, token) => {
-  return api.delete(`/skus/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
+export const getSkus = () => api.get('/skus');
+export const createSku = (data) => api.post('/skus', data);
+export const searchSkus = (query) => api.get(`/skus/search?q=${query}`);
+export const getSkuById = (id) => api.get(`/skus/${id}`);
+export const updateSku = (id, data) => api.put(`/skus/${id}`, data);
+export const deleteSku = (id) => api.delete(`/skus/${id}`);

@@ -1,30 +1,7 @@
 import api from './api.js';
 
-export const getLocationsByLayout = (layoutId, token) => {
-  return api.get(`/layouts/${layoutId}/locations`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-export const createLocation = (layoutId, locationData, token) => {
-  return api.post(`/layouts/${layoutId}/locations`, locationData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-export const updateLocation = (layoutId, locationId, locationData, token) => {
-  return api.put(`/layouts/${layoutId}/locations/${locationId}`, locationData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-
-export const deleteLocation = (layoutId, locationId, token) => {
-  return api.delete(`/layouts/${layoutId}/locations/${locationId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
-
-// --- NEW FUNCTION ---
-export const getLocationStats = (layoutId, locationId, token) => {
-  return api.get(`/layouts/${layoutId}/locations/${locationId}/stats`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
+export const getLocationsByLayout = (layoutId) => api.get(`/layouts/${layoutId}/locations`);
+export const createLocation = (layoutId, data) => api.post(`/layouts/${layoutId}/locations`, data);
+export const updateLocation = (layoutId, locId, data) => api.put(`/layouts/${layoutId}/locations/${locId}`, data);
+export const deleteLocation = (layoutId, locId) => api.delete(`/layouts/${layoutId}/locations/${locId}`);
+export const getLocationStats = (layoutId, locId) => api.get(`/layouts/${layoutId}/locations/${locId}/stats`);

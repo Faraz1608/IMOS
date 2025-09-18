@@ -105,8 +105,8 @@ const InventoryPage = () => {
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
-    if (!modalForm.selectedSku || !modalForm.selectedLocation || modalForm.quantity < 0) {
-      toast.error("Please fill out all fields correctly."); return;
+    if (!modalForm.selectedSku || !modalForm.selectedLocation || !modalForm.quantity || modalForm.quantity <= 0) {
+      toast.error("Please fill out all fields with valid values."); return;
     }
     try {
       await setInventory({ 
@@ -118,9 +118,13 @@ const InventoryPage = () => {
       }, token);
       toast.success(`Inventory set successfully!`);
       setIsModalOpen(false);
-      setModalForm({ selectedLayout: '', selectedLocation: '', selectedSku: '', quantity: 0, batchNumber: '', serialNumber: '' });
+      setModalForm({ selectedLayout: '', selectedLocation: '', selectedSku: '', quantity: '', batchNumber: '', serialNumber: '' });
       fetchInventory();
-    } catch (error) { toast.error("Failed to set inventory."); }
+    } catch (error) { 
+      // This will now display the specific error from the backend (e.g., "Location is full")
+      const errorMessage = error.response?.data?.message || "Failed to set inventory.";
+      toast.error(errorMessage);
+    }
   };
 
   const openEditModal = (item) => {

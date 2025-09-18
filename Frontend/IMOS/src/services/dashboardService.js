@@ -1,7 +1,3 @@
 import api from './api';
 
-export const getDashboardStats = (token) => {
-  return api.get('/dashboard/stats', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
+export const getDashboardStats = () => api.get('/dashboard/stats');
