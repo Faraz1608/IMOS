@@ -103,3 +103,73 @@ export const getSlowMovingReport = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// --- UPDATED FUNCTION ---
+/**
+ * @desc   Generate a Goods Issue (GI) report
+ * @route  GET /api/reports/gi-report
+ */
+export const getGiReport = async (req, res) => {
+  try {
+    const movements = await InventoryMovement.find({ type: 'GI' })
+      .populate('sku', 'skuCode name')
+      .populate('user', 'username');
+
+    if (movements.length === 0) {
+      return res.status(404).send('No Goods Issue movements found.');
+    }
+
+    const csvHeaders = 'Date,SKU Code,Product Name,Quantity,User\n';
+    const csvRows = movements
+      .map(m => {
+        const date = m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A';
+        const skuCode = m.sku ? m.sku.skuCode : '[Deleted SKU]';
+        const skuName = m.sku ? m.sku.name : '[Deleted SKU]';
+        const username = m.user ? m.user.username : '[Deleted User]';
+        return `"${date}","${skuCode}","${skuName}",${m.quantity},"${username}"`;
+      })
+      .join('\n');
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('gi-report.csv');
+    res.status(200).send(csvHeaders + csvRows);
+  } catch (error) {
+    console.error('Error in GI Report:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// --- UPDATED FUNCTION ---
+/**
+ * @desc   Generate a Goods Receipt (GR) report
+ * @route  GET /api/reports/gr-report
+ */
+export const getGrReport = async (req, res) => {
+  try {
+    const movements = await InventoryMovement.find({ type: 'GR' })
+      .populate('sku', 'skuCode name')
+      .populate('user', 'username');
+
+    if (movements.length === 0) {
+      return res.status(404).send('No Goods Receipt movements found.');
+    }
+
+    const csvHeaders = 'Date,SKU Code,Product Name,Quantity,User\n';
+    const csvRows = movements
+      .map(m => {
+        const date = m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A';
+        const skuCode = m.sku ? m.sku.skuCode : '[Deleted SKU]';
+        const skuName = m.sku ? m.sku.name : '[Deleted SKU]';
+        const username = m.user ? m.user.username : '[Deleted User]';
+        return `"${date}","${skuCode}","${skuName}",${m.quantity},"${username}"`;
+      })
+      .join('\n');
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('gr-report.csv');
+    res.status(200).send(csvHeaders + csvRows);
+  } catch (error) {
+    console.error('Error in GR Report:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

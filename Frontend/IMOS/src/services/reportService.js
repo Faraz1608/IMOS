@@ -21,3 +21,18 @@ export const getSlowMovingReport = (token) => {
   });
 };
 
+// --- NEW FUNCTION ---
+export const getGiReport = (token) => {
+  return api.get('/reports/gi-report', {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob',
+  });
+};
+
+// --- NEW FUNCTION ---
+export const getGrReport = (token) => {
+  return api.get('/reports/gr-report', {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob',
+  });
+};

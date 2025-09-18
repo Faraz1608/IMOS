@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { getInventoryReport, getStockoutReport, getSlowMovingReport } from '../services/reportService';
+import { 
+  getInventoryReport, 
+  getStockoutReport, 
+  getSlowMovingReport,
+  getGiReport,  // --- NEW ---
+  getGrReport   // --- NEW ---
+} from '../services/reportService';
 import { getAgingReport } from '../services/analyticsService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FiDownload } from 'react-icons/fi';
@@ -49,6 +55,14 @@ const ReportsPage = () => {
           case 'slowMoving':
               serviceCall = getSlowMovingReport(token);
               fileName = 'slow-moving-report.csv';
+              break;
+          case 'giReport': // --- NEW ---
+              serviceCall = getGiReport(token);
+              fileName = 'gi-report.csv';
+              break;
+          case 'grReport': // --- NEW ---
+              serviceCall = getGrReport(token);
+              fileName = 'gr-report.csv';
               break;
           default:
               toast.error('Unknown report type.', { id: toastId });
@@ -124,6 +138,25 @@ const ReportsPage = () => {
             colorClass="bg-yellow-500 hover:bg-yellow-600"
           />
       </div>
+      
+      {/* --- NEW SECTION --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <ReportCard 
+            title="Goods Issue Report"
+            description="Download a detailed report of all outbound inventory transactions (Goods Issue)."
+            reportType="giReport"
+            buttonText="Download GI Report"
+            colorClass="bg-purple-800 hover:bg-purple-900"
+          />
+          <ReportCard 
+            title="Goods Receipt Report"
+            description="Download a detailed report of all inbound inventory transactions (Goods Receipt)."
+            reportType="grReport"
+            buttonText="Download GR Report"
+            colorClass="bg-green-800 hover:bg-green-900"
+          />
+      </div>
+
 
       <div className="p-6 bg-gray-50 rounded-lg shadow-sm">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Inventory Aging Report (Top 10 Oldest Items)</h2>
@@ -148,4 +181,3 @@ const ReportsPage = () => {
 };
 
 export default ReportsPage;
-
