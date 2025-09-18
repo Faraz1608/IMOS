@@ -9,7 +9,7 @@ import Sku from '../models/Sku.js';
 export const getInventoryReport = async (req, res) => {
   try {
     const inventory = await Inventory.find({})
-      .populate({ path: 'sku', select: 'skuCode name' })
+      .populate({ path: 'sku', select: 'skuCode name velocity' })
       .populate({
         path: 'location',
         select: 'locationCode',
@@ -21,7 +21,7 @@ export const getInventoryReport = async (req, res) => {
     }
 
     // Prepare CSV headers & rows
-    const csvHeaders = 'SKU Code,Product Name,Layout,Location Code,Quantity,Batch Number,Serial Number\n';
+    const csvHeaders = 'SKU Code,Product Name,Layout,Location Code,Quantity,Batch Number,Serial Number,Velocity\n';
     const csvRows = inventory.map(item => {
       const skuCode = item.sku ? item.sku.skuCode : 'N/A';
       const skuName = item.sku ? item.sku.name : 'N/A';
@@ -29,7 +29,8 @@ export const getInventoryReport = async (req, res) => {
       const locationCode = item.location ? item.location.locationCode : 'N/A';
       const batch = item.batchNumber || '';
       const serial = item.serialNumber || '';
-      return `"${skuCode}","${skuName}","${layoutName}","${locationCode}",${item.quantity},"${batch}","${serial}"`;
+      const velocity = item.sku ? item.sku.velocity : 'N/A';
+      return `"${skuCode}","${skuName}","${layoutName}","${locationCode}",${item.quantity},"${batch}","${serial}","${velocity}"`;
     }).join('\n');
 
     res.header('Content-Type', 'text/csv');

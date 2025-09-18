@@ -108,7 +108,13 @@ const OptimizationsPage = () => {
       setPickingRoute(res.data.pickingRoute);
       toast.success('Picking route generated!');
     } catch (error) {
-      toast.error('Failed to generate route.');
+      const errorData = error.response?.data;
+      if (errorData && errorData.outOfStockItems) {
+        const stockoutMessage = `Insufficient stock for: ${errorData.outOfStockItems.join(', ')}`;
+        toast.error(stockoutMessage, { duration: 6000 });
+      } else {
+        toast.error('Failed to generate route.');
+      }
     } finally {
       setLoadingRoute(false);
     }

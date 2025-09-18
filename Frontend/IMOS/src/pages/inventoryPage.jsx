@@ -135,19 +135,17 @@ const InventoryPage = () => {
 
   const handleAdjustSubmit = async (operation) => {
     const adjustmentValue = parseInt(adjustment, 10);
+
     if (isNaN(adjustmentValue) || adjustmentValue <= 0) {
       toast.error("Please enter a valid positive number for the adjustment.");
       return;
     }
 
     const currentQuantity = currentItem.quantity;
-    let newQuantity;
-
-    if (operation === 'increase') {
-      newQuantity = currentQuantity + adjustmentValue;
-    } else if (operation === 'decrease') {
-      newQuantity = currentQuantity - adjustmentValue;
-    }
+    // Calculate the final new quantity based on the operation
+    const newQuantity = operation === 'increase'
+      ? currentQuantity + adjustmentValue
+      : currentQuantity - adjustmentValue;
 
     if (newQuantity < 0) {
       toast.error("Quantity cannot be negative.");
@@ -155,12 +153,16 @@ const InventoryPage = () => {
     }
 
     try {
-      await adjustInventory(currentItem._id, { quantity: newQuantity }, token);
+      // Pass the inventory item's ID and the final calculated quantity.
+      // The 'token' is no longer needed here.
+      await adjustInventory(currentItem._id, { quantity: newQuantity });
+      
       toast.success('Quantity adjusted successfully!');
       setIsEditModalOpen(false);
-      fetchInventory();
+      fetchInventory(); // Refresh the inventory list to show the change
     } catch (error) {
-      toast.error('Failed to adjust quantity.');
+      const errorMessage = error.response?.data?.message || 'Failed to adjust quantity.';
+      toast.error(errorMessage);
     }
   };
 

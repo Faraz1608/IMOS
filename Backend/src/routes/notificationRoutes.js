@@ -3,6 +3,7 @@ import { getNotifications, markAllAsRead } from '../controllers/notificationCont
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+// All routes in this file require a user to be logged in
 router.use(protect);
 
 router.route('/').get(getNotifications);

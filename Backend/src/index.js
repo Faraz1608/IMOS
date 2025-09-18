@@ -37,11 +37,11 @@ const io = new Server(server, {
   }
 });
 
-// Socket.io connection
+// Socket.io connection logic
 io.on('connection', (socket) => {
   console.log('A user connected');
 
-  // Join a room for targeted notifications using user ID
+  // Join a room for targeted notifications using user ID from the client
   const userId = socket.handshake.query.userId;
   if (userId) {
     socket.join(userId);
@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Make io accessible in all routes
+// Make io accessible in all routes by attaching it to the request object
 app.use((req, res, next) => {
   req.io = io;
   next();

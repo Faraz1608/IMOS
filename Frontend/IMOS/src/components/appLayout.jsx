@@ -61,7 +61,7 @@ const AppLayout = () => {
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="flex items-center justify-end h-20 px-10 flex-shrink-0">
           <div className="flex items-center">
-            <NotificationBell />
+            
             <div className="flex items-center ml-6">
               <div className="ml-3">
                 <p className="text-sm font-semibold text-gray-800">{user?.username || "manager_a@company.com"}</p>

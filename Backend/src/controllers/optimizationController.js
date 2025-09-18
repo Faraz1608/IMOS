@@ -126,6 +126,30 @@ export const generatePickingRoute = async (req, res) => {
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'An array of items is required.' });
     }
+    
+    // --- NEW: Check for stock availability ---
+    const outOfStockItems = [];
+    for (const item of items) {
+      const sku = await Sku.findOne({ skuCode: item.skuCode });
+      if (!sku) {
+        outOfStockItems.push(`${item.skuCode} (SKU not found)`);
+        continue;
+      }
+      
+      const inventoryRecords = await Inventory.find({ sku: sku._id });
+      const totalQuantity = inventoryRecords.reduce((sum, record) => sum + record.quantity, 0);
+
+      if (totalQuantity < item.quantity) {
+        outOfStockItems.push(`${item.skuCode} (requested: ${item.quantity}, available: ${totalQuantity})`);
+      }
+    }
+
+    if (outOfStockItems.length > 0) {
+      return res.status(400).json({ 
+        message: 'Cannot generate route due to insufficient stock.',
+        outOfStockItems,
+      });
+    }
 
     // Find inventory locations for requested SKUs
     const inventoryLocations = await Inventory.find({

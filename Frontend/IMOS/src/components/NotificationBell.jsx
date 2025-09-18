@@ -15,7 +15,7 @@ const NotificationBell = () => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await getNotifications(token);
+      const res = await getNotifications();
       setNotifications(res.data);
     } catch (error) {
       toast.error('Could not fetch notifications.');
@@ -23,46 +23,38 @@ const NotificationBell = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    if (token && user?._id) {
+      fetchNotifications();
 
-    // --- Real-time Notification Listener ---
-    const socket = io('http://localhost:7000', {
-      query: { userId: user?._id } // Pass user ID to backend
-    });
+      const socket = io('http://localhost:7000', {
+        auth: { token },
+        query: { userId: user._id }
+      });
 
-    socket.on('new_notification', (newNotification) => {
-      toast.success(newNotification.message, { icon: '🔔' });
-      setNotifications(prev => [newNotification, ...prev]);
-    });
+      socket.on('new_notification', (newNotification) => {
+        toast.success(newNotification.message, { icon: '🔔' });
+        setNotifications(prev => [newNotification, ...prev]);
+      });
 
-    return () => {
-      socket.disconnect();
-    };
+      return () => {
+        socket.disconnect();
+      };
+    }
   }, [token, user]);
 
   const handleToggle = async () => {
     setIsOpen(!isOpen);
     if (!isOpen && unreadCount > 0) {
       try {
-        await markAllAsRead(token);
-        // Visually mark as read without re-fetching
+        await markAllAsRead();
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       } catch (error) {
         console.error('Failed to mark notifications as read');
       }
     }
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownRef]);
-
+  
+  // ... (Add JSX for rendering the bell and dropdown)
   return (
     <div className="relative" ref={dropdownRef}>
       <button onClick={handleToggle} className="relative">
