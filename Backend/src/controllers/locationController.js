@@ -102,8 +102,8 @@ export const getLocationStats = async (req, res) => {
         let totalOccupiedVolume = 0;
         for (const item of inventoryInLocation) {
             const skuProps = item.sku?.properties;
-            const skuVolume = (skuProps?.dimensions?.w || 0) * (skuProps?.dimensions?.d || 0) * (skuProps?.dimensions?.h || 0);
-            totalOccupiedVolume += skuVolume * item.quantity;
+            const skuVolumeCm3 = (skuProps?.dimensions?.w || 0) * (skuProps?.dimensions?.d || 0) * (skuProps?.dimensions?.h || 0);
+            totalOccupiedVolume += (skuVolumeCm3 / 1000000) * item.quantity;
         }
 
         const utilization = (totalOccupiedVolume / locationCapacity) * 100;

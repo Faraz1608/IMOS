@@ -21,8 +21,8 @@ const LocationsPage = () => {
   const [properties, setProperties] = useState({
     dimensions: { w: '', d: '', h: '' },
     weightCapacityKg: '',
-    temperature: 'Ambient',
   });
+
 
   const { token } = useAuthStore();
 
@@ -57,6 +57,9 @@ const LocationsPage = () => {
         toast('Locations have been updated.', { icon: '🔄' });
         fetchLocationsAndStats();
     });
+    socket.on('inventory_updated', () => {
+        fetchLocationsAndStats();
+    });
     return () => { socket.disconnect(); };
   }, [layoutId, token]);
 
@@ -77,7 +80,6 @@ const LocationsPage = () => {
     setProperties({
       dimensions: { w: '', d: '', h: '' },
       weightCapacityKg: '',
-      temperature: 'Ambient',
     });
     setCurrentLocation(null);
   };
@@ -93,7 +95,8 @@ const LocationsPage = () => {
     setModalMode('edit');
     setCurrentLocation(location);
     setLocationCode(location.locationCode);
-    setProperties(location.properties || { dimensions: { w: '', d: '', h: '' }, weightCapacityKg: '', temperature: 'Ambient' });
+    // Temperature property is no longer set
+    setProperties(location.properties || { dimensions: { w: '', d: '', h: '' }, weightCapacityKg: '' });
     setIsModalOpen(true);
   };
 
@@ -189,7 +192,7 @@ const LocationsPage = () => {
             <input type="text" id="locationCode" value={locationCode} onChange={(e) => setLocationCode(e.target.value)} required className="w-full p-2 border rounded-md"/>
           </div>
           <fieldset className="border p-2 rounded-md">
-            <legend className="text-sm font-medium px-1">Dimensions (cm)</legend>
+            <legend className="text-sm font-medium px-1">Dimensions (m)</legend>
             <div className="grid grid-cols-3 gap-2">
                 <input type="number" name="dimensions.w" value={properties.dimensions.w} onChange={handlePropertiesChange} placeholder="Width" className="w-full p-2 border rounded-md"/>
                 <input type="number" name="dimensions.d" value={properties.dimensions.d} onChange={handlePropertiesChange} placeholder="Depth" className="w-full p-2 border rounded-md"/>
@@ -200,14 +203,7 @@ const LocationsPage = () => {
             <label htmlFor="weightCapacityKg" className="block text-sm font-medium mb-1">Weight Capacity (Kg)</label>
             <input type="number" id="weightCapacityKg" name="weightCapacityKg" value={properties.weightCapacityKg} onChange={handlePropertiesChange} className="w-full p-2 border rounded-md"/>
           </div>
-          <div>
-            <label htmlFor="temperature" className="block text-sm font-medium mb-1">Temperature</label>
-            <select id="temperature" name="temperature" value={properties.temperature} onChange={handlePropertiesChange} className="w-full p-2 border rounded-md">
-              <option>Ambient</option>
-              <option>Chilled</option>
-              <option>Frozen</option>
-            </select>
-          </div>
+          {/* Temperature dropdown removed from here */}
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg">{modalMode === 'add' ? 'Create New Location' : 'Save Changes'}</button>
           </div>

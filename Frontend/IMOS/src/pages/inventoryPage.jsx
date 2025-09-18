@@ -83,12 +83,7 @@ const InventoryPage = () => {
     } else { setLocations([]); }
   }, [modalForm.selectedLayout, token]);
   
-  useEffect(() => {
-    // Auto-set quantity to 1 if a serial number is entered
-    if (modalForm.serialNumber) {
-        setModalForm(prev => ({...prev, quantity: 1}));
-    }
-  }, [modalForm.serialNumber]);
+  
 
   useEffect(() => {
     const results = inventory.filter(item =>
@@ -215,7 +210,7 @@ const InventoryPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">{item.serialNumber || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.quantity} units</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-900 mr-4 disabled:text-gray-300" disabled={item.serialNumber}><FiEdit /></button>
+                    <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-900 mr-4"><FiEdit /></button>
                     <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-900"><FiTrash2 /></button>
                   </td>
                 </tr>
@@ -241,7 +236,7 @@ const InventoryPage = () => {
           </select>
           <input type="text" name="batchNumber" value={modalForm.batchNumber} onChange={handleModalChange} placeholder="Batch Number (Optional)" className="w-full p-2 border rounded-md" />
           <input type="text" name="serialNumber" value={modalForm.serialNumber} onChange={handleModalChange} placeholder="Serial Number (Optional)" className="w-full p-2 border rounded-md" />
-          <input type="number" name="quantity" value={modalForm.quantity} onChange={handleModalChange} min="0" className="w-full p-2 border rounded-md disabled:bg-gray-200" disabled={!!modalForm.serialNumber}/>
+          <input type="number" name="quantity" value={modalForm.quantity} onChange={handleModalChange} min="0" className="w-full p-2 border rounded-md" />
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg">Map SKU to Location</button>
           </div>

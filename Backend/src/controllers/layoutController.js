@@ -125,8 +125,8 @@ export const getLayoutStats = async (req, res) => {
     let totalOccupiedVolume = 0;
     for (const item of inventoryInLayout) {
         if (item.sku && item.sku.properties && item.sku.properties.dimensions) {
-            const skuVolume = (item.sku.properties.dimensions.w || 0) * (item.sku.properties.dimensions.d || 0) * (item.sku.properties.dimensions.h || 0);
-            totalOccupiedVolume += skuVolume * item.quantity;
+            const skuVolumeCm3 = (item.sku.properties.dimensions.w || 0) * (item.sku.properties.dimensions.d || 0) * (item.sku.properties.dimensions.h || 0);
+            totalOccupiedVolume += (skuVolumeCm3 / 1000000) * item.quantity;
         }
     }
 

@@ -42,8 +42,9 @@ export const getDashboardStats = async (req, res) => {
       let totalOccupiedVolume = 0;
       for (const item of inventoryInLayout) {
           const skuProps = item.sku?.properties;
-          const skuVolume = (skuProps?.dimensions?.w || 0) * (skuProps?.dimensions?.d || 0) * (skuProps?.dimensions?.h || 0);
-          totalOccupiedVolume += skuVolume * item.quantity;
+          const skuVolumeCm3 = (skuProps?.dimensions?.w || 0) * (skuProps?.dimensions?.d || 0) * (skuProps?.dimensions?.h || 0);
+          // Convert SKU volume from cm³ to m³ and add to total
+          totalOccupiedVolume += (skuVolumeCm3 / 1000000) * item.quantity;
       }
       
       const utilization = totalLayoutCapacity > 0 ? (totalOccupiedVolume / totalLayoutCapacity) * 100 : 0;

@@ -29,25 +29,28 @@ export const setInventory = async (req, res) => {
       return res.status(400).json({ message: 'SKU, location, and quantity are required' });
     }
 
-    const finalQuantity = serialNumber ? 1 : quantity;
-    
-    const findQuery = { sku: skuId, location: locationId };
-    if (batchNumber) findQuery.batchNumber = batchNumber;
-    if (serialNumber) findQuery.serialNumber = serialNumber;
+    let inventory;
+    // Find an existing inventory item for the SKU and location, ignoring batch/serial for aggregation
+    const existingInventory = await Inventory.findOne({ sku: skuId, location: locationId });
 
-    const inventory = await Inventory.findOneAndUpdate(
-      findQuery,
-      { 
-        quantity: finalQuantity, 
+    if (existingInventory) {
+      // If it exists, update the quantity
+      existingInventory.quantity += Number(quantity);
+      inventory = await existingInventory.save();
+    } else {
+      // If it doesn't exist, create a new record
+      inventory = await Inventory.create({
+        sku: skuId,
+        location: locationId,
+        quantity: quantity,
         batchNumber,
         serialNumber,
-        createdBy: req.user.id // Keep creator for auditing
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
+        createdBy: req.user.id
+      });
+    }
     
-    await Transaction.create({ sku: skuId, type: 'GR', quantity: finalQuantity, user: req.user.id });
-    await InventoryMovement.create({ sku: skuId, type: 'GR', quantity: finalQuantity, user: req.user.id });
+    await Transaction.create({ sku: skuId, type: 'GR', quantity: quantity, user: req.user.id });
+    await InventoryMovement.create({ sku: skuId, type: 'GR', quantity: quantity, user: req.user.id });
     
     req.io.emit('inventory_updated');
     res.status(200).json(inventory);
