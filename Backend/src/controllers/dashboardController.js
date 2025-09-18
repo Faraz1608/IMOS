@@ -43,14 +43,15 @@ export const getDashboardStats = async (req, res) => {
       for (const item of inventoryInLayout) {
           const skuProps = item.sku?.properties;
           const skuVolumeCm3 = (skuProps?.dimensions?.w || 0) * (skuProps?.dimensions?.d || 0) * (skuProps?.dimensions?.h || 0);
-          // Convert SKU volume from cm³ to m³ and add to total
           totalOccupiedVolume += (skuVolumeCm3 / 1000000) * item.quantity;
       }
       
       const utilization = totalLayoutCapacity > 0 ? (totalOccupiedVolume / totalLayoutCapacity) * 100 : 0;
+      
+      // FIX: Ensure the 'name' property is always returned
       return {
         name: layout.name,
-        utilization: parseFloat(utilization.toFixed(2)),
+        utilization: parseFloat(utilization),
       };
     });
     const layoutUtilization = await Promise.all(layoutStatsPromises);
@@ -73,7 +74,6 @@ export const getDashboardStats = async (req, res) => {
       userRoles,
       layoutUtilization,
       recentTransactions,
-      inventoryStatus 
     });
 
   } catch (error) {

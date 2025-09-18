@@ -32,8 +32,15 @@ const DashboardPage = () => {
 
   const roleData = stats?.userRoles?.map(role => ({ name: role._id, value: role.count })) || [];
   const transactionData = stats?.recentTransactions?.map(t => ({ name: t._id, value: t.count })) || [];
-  const inventoryStatus = stats?.inventoryStatus || [];
 
+  const layoutChartMinWidth = (stats?.layoutUtilization?.length || 0) * 80;
+  const sortedLayoutData = stats?.layoutUtilization
+      ? [...stats.layoutUtilization].sort((a, b) => a.name.localeCompare(b.name))
+      : [];
+  const utilizationTooltipFormatter = (value) => {
+    if (value === 0) return '0%';
+    return `${value.toFixed(8)}%`;
+  };
 
   return (
     <div className="space-y-6">
@@ -66,21 +73,25 @@ const DashboardPage = () => {
         </div>
       </div>
       
-      {/* Layout Utilization & Transactions */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* FIX: Layout chart now takes up 2/3 of the width */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
            <h2 className="text-xl font-semibold mb-4 text-gray-700">Layout Space Utilization</h2>
-           <ResponsiveContainer width="100%" height={250}>
-             <BarChart data={stats?.layoutUtilization}>
-               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-               <XAxis dataKey="name" />
-               <YAxis unit="%" />
-               <Tooltip />
-               <Bar dataKey="utilization" name="Utilization" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={30} />
-             </BarChart>
-           </ResponsiveContainer>
+           <div className="overflow-x-auto">
+             <ResponsiveContainer width="100%" height={250} minWidth={layoutChartMinWidth}>
+               <BarChart data={sortedLayoutData} style={{ minWidth: 600 }} barCategoryGap="30%">
+                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                 <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={100} />
+                 <YAxis unit="%" />
+                 <YAxis unit="%" />
+                 <Tooltip formatter={utilizationTooltipFormatter} />
+                 <Bar dataKey="utilization" name="Utilization" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={40} />
+               </BarChart>
+             </ResponsiveContainer>
+           </div>
         </div>
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md flex flex-col">
+        {/* FIX: Transactions chart now takes up 1/3 of the width */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md flex flex-col">
             <h2 className="text-xl font-semibold mb-4 text-gray-700">Recent Transactions</h2>
             <div className="flex-grow flex items-center justify-center">
                 <ResponsiveContainer width="100%" height={200}>
@@ -94,34 +105,7 @@ const DashboardPage = () => {
                 </ResponsiveContainer>
             </div>
         </div>
-      </div>
-
-      {/* Inventory Status Table */}
-      <div className="bg-white p-6 rounded-xl shadow-md">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Inventory Status</h2>
-        <table className="min-w-full">
-            <thead>
-                <tr className="border-b">
-                    <th className="text-left py-2 px-4 text-gray-500 font-medium">SKU's</th>
-                    <th className="text-left py-2 px-4 text-gray-500 font-medium">Dispatch Status</th>
-                    <th className="text-left py-2 px-4 text-gray-500 font-medium">Approvals</th>
-                </tr>
-            </thead>
-            <tbody>
-                {inventoryStatus.map((item) => (
-                    <tr key={item._id} className="border-b">
-                        <td className="py-3 px-4">
-  {item.items
-    .map(i => i.sku?.name)       // Safely access name, returns undefined if sku is null
-    .filter(Boolean)            // Removes any null or undefined entries
-    .join(', ')}
-</td>
-                        <td className="py-3 px-4">{item.approvedBy || 'N/A'}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-      </div>
+      </div>      
     </div>
   );
 };

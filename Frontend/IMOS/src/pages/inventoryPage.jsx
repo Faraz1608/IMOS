@@ -23,7 +23,7 @@ const InventoryPage = () => {
     selectedLayout: '', 
     selectedLocation: '', 
     selectedSku: '', 
-    quantity: 0,
+    quantity: '',
     batchNumber: '',
     serialNumber: ''
   });
@@ -236,7 +236,7 @@ const InventoryPage = () => {
           </select>
           <input type="text" name="batchNumber" value={modalForm.batchNumber} onChange={handleModalChange} placeholder="Batch Number (Optional)" className="w-full p-2 border rounded-md" />
           <input type="text" name="serialNumber" value={modalForm.serialNumber} onChange={handleModalChange} placeholder="Serial Number (Optional)" className="w-full p-2 border rounded-md" />
-          <input type="number" name="quantity" value={modalForm.quantity} onChange={handleModalChange} min="0" className="w-full p-2 border rounded-md" />
+          <input type="number" name="quantity" value={modalForm.quantity} onChange={handleModalChange} min="0" placeholder="Quantity" className="w-full p-2 border rounded-md" />
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg">Map SKU to Location</button>
           </div>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { runAbcAnalysis, getSlottingRecommendations, generatePickingRoute } from '../services/optimizationService.js';
 import { moveInventory } from '../services/inventoryService.js';
-import { FiArrowRight, FiPlayCircle, FiList, FiNavigation, FiCheckCircle } from 'react-icons/fi';
+import { getSkus } from '../services/skuService.js'; // Import the SKU service
+import { FiArrowRight, FiPlayCircle, FiList, FiNavigation, FiCheckCircle, FiPlus, FiTrash2 } from 'react-icons/fi';
 
 const OptimizationsPage = () => {
   const { token } = useAuthStore();
@@ -12,9 +13,25 @@ const OptimizationsPage = () => {
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [movingItem, setMovingItem] = useState(null);
   
-  const [pickingItems, setPickingItems] = useState('');
+  // --- State for SKU Dropdown and Picking List ---
+  const [availableSkus, setAvailableSkus] = useState([]);
+  const [pickingItems, setPickingItems] = useState([{ skuCode: '', quantity: 1 }]);
   const [pickingRoute, setPickingRoute] = useState([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
+
+  // --- Fetch all SKUs when the component mounts ---
+  useEffect(() => {
+    const fetchSkus = async () => {
+      try {
+        const res = await getSkus(token);
+        setAvailableSkus(res.data);
+      } catch (error) {
+        toast.error('Could not load SKUs for picking route form.');
+      }
+    };
+    fetchSkus();
+  }, [token]);
+
 
   const handleRunAbc = async () => {
     setLoadingAbc(true);
@@ -61,20 +78,33 @@ const OptimizationsPage = () => {
         setMovingItem(null);
     }
   };
+  
+  // --- Handlers for the new dynamic picking form ---
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...pickingItems];
+    newItems[index][field] = value;
+    setPickingItems(newItems);
+  };
 
+  const addItem = () => {
+    setPickingItems([...pickingItems, { skuCode: '', quantity: 1 }]);
+  };
+
+  const removeItem = (index) => {
+    const newItems = pickingItems.filter((_, i) => i !== index);
+    setPickingItems(newItems);
+  };
+
+  // --- Updated route generation logic to use the new state format ---
   const handleGenerateRoute = async () => {
-    if (!pickingItems.trim()) {
-      toast.error('Please enter at least one SKU and quantity.');
+    const validItems = pickingItems.filter(item => item.skuCode && item.quantity > 0);
+    if (validItems.length === 0) {
+      toast.error('Please add at least one valid SKU and quantity.');
       return;
     }
     setLoadingRoute(true);
-    const items = pickingItems.split('\n').map(line => {
-      const [skuCode, quantity] = line.split(',');
-      return { skuCode: skuCode?.trim(), quantity: parseInt(quantity?.trim(), 10) || 1 };
-    });
-
     try {
-      const res = await generatePickingRoute(items, token);
+      const res = await generatePickingRoute(validItems, token);
       setPickingRoute(res.data.pickingRoute);
       toast.success('Picking route generated!');
     } catch (error) {
@@ -133,20 +163,42 @@ const OptimizationsPage = () => {
         {/* Right Column */}
         <div className="p-6 bg-gray-50 rounded-lg shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2"><FiNavigation/> Generate Optimal Picking Route</h2>
-          <p className="text-gray-600 mb-4">Enter SKUs and quantities (one per line, comma-separated) to generate a simulated optimal picking path.</p>
+          <p className="text-gray-600 mb-4">Add SKUs and quantities to the list to generate a simulated optimal picking path.</p>
           
-          <div>
-            <label htmlFor="pickingItems" className="block text-sm font-medium text-gray-700 mb-1">SKU Code, Quantity</label>
-            <textarea
-              id="pickingItems" rows="5" value={pickingItems}
-              onChange={(e) => setPickingItems(e.target.value)}
-              placeholder="HDWR-SCRW-001, 10&#10;HDWR-BLT-005, 50"
-              className="w-full p-2 border rounded-md"
-            ></textarea>
-            <button onClick={handleGenerateRoute} disabled={loadingRoute} className="mt-2 w-full px-4 py-2 bg-blue-800 text-white font-semibold rounded-lg hover:bg-blue-900 disabled:bg-gray-400">
-              {loadingRoute ? 'Generating...' : 'Generate Route'}
+          <div className="space-y-3">
+            {pickingItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <select 
+                  value={item.skuCode} 
+                  onChange={(e) => handleItemChange(index, 'skuCode', e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">-- Select SKU --</option>
+                  {availableSkus.map(sku => (
+                    <option key={sku._id} value={sku.skuCode}>{sku.name} ({sku.skuCode})</option>
+                  ))}
+                </select>
+                <input 
+                  type="number" 
+                  value={item.quantity}
+                  onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value, 10))}
+                  min="1"
+                  className="w-24 p-2 border rounded-md"
+                />
+                <button onClick={() => removeItem(index)} className="p-2 text-red-500 hover:text-red-700">
+                  <FiTrash2 />
+                </button>
+              </div>
+            ))}
+            <button onClick={addItem} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-semibold">
+              <FiPlus /> Add Item
             </button>
           </div>
+          
+          <button onClick={handleGenerateRoute} disabled={loadingRoute} className="mt-4 w-full px-4 py-2 bg-blue-800 text-white font-semibold rounded-lg hover:bg-blue-900 disabled:bg-gray-400">
+            {loadingRoute ? 'Generating...' : 'Generate Route'}
+          </button>
+          
           <div className="mt-4">
              <label className="block text-sm font-medium text-gray-700 mb-1">Optimized Picking Path</label>
             {pickingRoute.length > 0 ? (
@@ -172,4 +224,3 @@ const OptimizationsPage = () => {
 };
 
 export default OptimizationsPage;
-
