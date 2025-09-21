@@ -12,6 +12,14 @@ const layoutSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    // --- NEW FIELD ---
+    properties: {
+      dimensions: {
+        w: { type: Number, default: 0 },
+        d: { type: Number, default: 0 },
+        h: { type: Number, default: 0 },
+      },
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -25,4 +33,4 @@ const layoutSchema = new mongoose.Schema(
 
 const Layout = mongoose.model('Layout', layoutSchema);
 
-export default Layout;  
+export default Layout;

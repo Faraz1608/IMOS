@@ -1,10 +1,10 @@
 import Inventory from '../models/Inventory.js';
 import Transaction from '../models/Transaction.js';
 import InventoryMovement from '../models/InventoryMovement.js';
-import Location from '../models/Location.js';   
-import Layout from '../models/Layout.js'; 
-import Sku from '../models/Sku.js'; 
-import Notification from '../models/Notification.js'; 
+import Location from '../models/Location.js';
+import Layout from '../models/Layout.js';
+import Sku from '../models/Sku.js';
+import Notification from '../models/Notification.js';
 
 
 // Helper function to calculate volume
@@ -14,10 +14,10 @@ const getVolumeCm3 = (dimensions) => {
 // Get all inventory in the system
 export const getInventory = async (req, res) => {
   try {
-    const inventory = await Inventory.find({}) // REMOVED: User-specific filter
-      .populate({ path: 'sku', select: 'skuCode name properties' })
-      .populate({ 
-        path: 'location', 
+    const inventory = await Inventory.find({})
+      .populate({ path: 'sku', select: 'skuCode name properties category' }) // --- FIX ---
+      .populate({
+        path: 'location',
         select: 'locationCode layout',
         populate: {
           path: 'layout',
@@ -47,12 +47,12 @@ export const setInventory = async (req, res) => {
     if (!newSku) {
         return res.status(404).json({ message: 'SKU not found.' });
     }
-    
+
     const locationCapacityCm3 = getVolumeCm3(location.properties?.dimensions) * 1000000;
     if (locationCapacityCm3 === 0) {
         return res.status(400).json({ message: 'Cannot add to a location with zero capacity.' });
     }
-    
+
     const inventoryInLocation = await Inventory.find({ location: locationId }).populate('sku');
     let currentOccupiedVolumeCm3 = 0;
     inventoryInLocation.forEach(item => {
@@ -66,13 +66,13 @@ export const setInventory = async (req, res) => {
         const remainingCapacityPercent = ((locationCapacityCm3 - currentOccupiedVolumeCm3) / locationCapacityCm3) * 100;
         return res.status(400).json({ message: `Adding this item would exceed location capacity. Only ${remainingCapacityPercent.toFixed(2)}% space remaining.` });
     }
-    
+
     let inventory;
-    const existingInventory = await Inventory.findOne({ 
-        sku: skuId, 
-        location: locationId, 
-        batchNumber: batchNumber || null, 
-        serialNumber: serialNumber || null 
+    const existingInventory = await Inventory.findOne({
+        sku: skuId,
+        location: locationId,
+        batchNumber: batchNumber || null,
+        serialNumber: serialNumber || null
     });
 
     if (existingInventory) {
@@ -88,10 +88,10 @@ export const setInventory = async (req, res) => {
         createdBy: req.user.id
       });
     }
-    
+
     await Transaction.create({ sku: skuId, type: 'GR', quantity: quantity, user: req.user.id });
     await InventoryMovement.create({ sku: skuId, type: 'GR', quantity: quantity, user: req.user.id });
-    
+
     const finalUtilization = (projectedVolumeCm3 / locationCapacityCm3) * 100;
     if (finalUtilization >= 100) {
         const notification = await Notification.create({
@@ -101,7 +101,7 @@ export const setInventory = async (req, res) => {
         });
         req.io.to(req.user.id).emit('new_notification', notification);
     }
-    
+
     req.io.emit('inventory_updated');
     res.status(200).json(inventory);
   } catch (error) {
@@ -119,7 +119,7 @@ export const adjustInventory = async (req, res) => {
     }
 
     const inventoryItem = await Inventory.findById(req.params.id).populate('sku').populate('location');
-    
+
     if (!inventoryItem) { return res.status(404).json({ message: 'Inventory record not found.' }); }
     if (!inventoryItem.sku || !inventoryItem.location) {
       return res.status(404).json({ message: 'Cannot adjust item. The associated SKU or Location has been deleted.' });
@@ -136,7 +136,7 @@ export const adjustInventory = async (req, res) => {
     inventoryInLocation.filter(item => item.sku).forEach(item => {
         currentOccupiedVolumeCm3 += getVolumeCm3(item.sku.properties?.dimensions) * item.quantity;
     });
-    
+
     const oldQuantity = inventoryItem.quantity;
     const quantityChange = Number(quantity) - oldQuantity;
     const volumeChangeCm3 = getVolumeCm3(inventoryItem.sku.properties?.dimensions) * quantityChange;
@@ -182,7 +182,7 @@ export const deleteInventory = async (req, res) => {
     if (!inventoryItem) { // REMOVED: Ownership check
       return res.status(404).json({ message: 'Inventory record not found.' });
     }
-    
+
     await Transaction.create({ sku: inventoryItem.sku, type: 'GI', quantity: inventoryItem.quantity, user: req.user.id });
     await InventoryMovement.create({ sku: inventoryItem.sku, type: 'GI', quantity: inventoryItem.quantity, user: req.user.id });
 
@@ -219,4 +219,3 @@ export const moveInventory = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-

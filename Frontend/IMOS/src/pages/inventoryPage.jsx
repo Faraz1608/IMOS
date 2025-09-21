@@ -15,14 +15,15 @@ const InventoryPage = () => {
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [layouts, setLayouts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [skus, setSkus] = useState([]);
-  const [modalForm, setModalForm] = useState({ 
-    selectedLayout: '', 
-    selectedLocation: '', 
-    selectedSku: '', 
+  const [modalForm, setModalForm] = useState({
+    selectedLayout: '',
+    selectedLocation: '',
+    selectedSku: '',
     quantity: '',
     batchNumber: '',
     serialNumber: ''
@@ -82,17 +83,26 @@ const InventoryPage = () => {
       fetchLocations();
     } else { setLocations([]); }
   }, [modalForm.selectedLayout, token]);
-  
-  
+
+
 
   useEffect(() => {
-    const results = inventory.filter(item =>
-      (item.sku?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.sku?.skuCode?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.location?.locationCode?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
+    let results = inventory;
+
+    if (categoryFilter !== 'All') {
+      results = results.filter(item => item.sku?.category === categoryFilter);
+    }
+
+    if (searchTerm) {
+      results = results.filter(item =>
+        (item.sku?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (item.sku?.skuCode?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (item.location?.locationCode?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      );
+    }
+
     setFilteredInventory(results);
-  }, [searchTerm, inventory]);
+  }, [searchTerm, inventory, categoryFilter]);
 
   const handleModalChange = (e) => {
     const { name, value } = e.target;
@@ -109,9 +119,9 @@ const InventoryPage = () => {
       toast.error("Please fill out all fields with valid values."); return;
     }
     try {
-      await setInventory({ 
-        skuId: modalForm.selectedSku, 
-        locationId: modalForm.selectedLocation, 
+      await setInventory({
+        skuId: modalForm.selectedSku,
+        locationId: modalForm.selectedLocation,
         quantity: modalForm.quantity,
         batchNumber: modalForm.batchNumber,
         serialNumber: modalForm.serialNumber
@@ -120,8 +130,7 @@ const InventoryPage = () => {
       setIsModalOpen(false);
       setModalForm({ selectedLayout: '', selectedLocation: '', selectedSku: '', quantity: '', batchNumber: '', serialNumber: '' });
       fetchInventory();
-    } catch (error) { 
-      // This will now display the specific error from the backend (e.g., "Location is full")
+    } catch (error) {
       const errorMessage = error.response?.data?.message || "Failed to set inventory.";
       toast.error(errorMessage);
     }
@@ -135,17 +144,19 @@ const InventoryPage = () => {
 
   const handleAdjustSubmit = async (operation) => {
     const adjustmentValue = parseInt(adjustment, 10);
-
     if (isNaN(adjustmentValue) || adjustmentValue <= 0) {
       toast.error("Please enter a valid positive number for the adjustment.");
       return;
     }
 
     const currentQuantity = currentItem.quantity;
-    // Calculate the final new quantity based on the operation
-    const newQuantity = operation === 'increase'
-      ? currentQuantity + adjustmentValue
-      : currentQuantity - adjustmentValue;
+    let newQuantity;
+
+    if (operation === 'increase') {
+      newQuantity = currentQuantity + adjustmentValue;
+    } else if (operation === 'decrease') {
+      newQuantity = currentQuantity - adjustmentValue;
+    }
 
     if (newQuantity < 0) {
       toast.error("Quantity cannot be negative.");
@@ -153,16 +164,12 @@ const InventoryPage = () => {
     }
 
     try {
-      // Pass the inventory item's ID and the final calculated quantity.
-      // The 'token' is no longer needed here.
-      await adjustInventory(currentItem._id, { quantity: newQuantity });
-      
+      await adjustInventory(currentItem._id, { quantity: newQuantity }, token);
       toast.success('Quantity adjusted successfully!');
       setIsEditModalOpen(false);
-      fetchInventory(); // Refresh the inventory list to show the change
+      fetchInventory();
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to adjust quantity.';
-      toast.error(errorMessage);
+      toast.error('Failed to adjust quantity.');
     }
   };
 
@@ -183,6 +190,12 @@ const InventoryPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Inventory View</h1>
         <div className="flex items-center gap-4">
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="p-2 border rounded-lg">
+            <option value="All">All Categories</option>
+            <option value="Raw Material">Raw Material</option>
+            <option value="Finished Product">Finished Product</option>
+            <option value="Work In Progress">Work In Progress</option>
+          </select>
           <div className="relative">
             <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
             <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search Inventory" className="w-full max-w-xs p-2 pl-10 border rounded-lg"/>
@@ -198,6 +211,7 @@ const InventoryPage = () => {
           <thead>
             <tr className="bg-blue-900 text-white">
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">SKU</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Category</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Location</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Batch #</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Serial #</th>
@@ -206,11 +220,13 @@ const InventoryPage = () => {
             </tr>
           </thead>
           <tbody>
-            {loading ? ( <tr><td colSpan="6" className="text-center py-8">Loading inventory...</td></tr> )
-            : (
+            {loading ? (
+              <tr><td colSpan="7" className="text-center py-8">Loading inventory...</td></tr>
+            ) : (
               filteredInventory.map((item, index) => (
                 <tr key={item._id} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                   <td className="px-6 py-4 whitespace-nowrap">{item.sku?.skuCode || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{item.sku?.category || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.location?.locationCode || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">{item.batchNumber || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">{item.serialNumber || '-'}</td>
@@ -274,4 +290,3 @@ const InventoryPage = () => {
 };
 
 export default InventoryPage;
-

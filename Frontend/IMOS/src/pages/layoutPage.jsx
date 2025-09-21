@@ -13,6 +13,7 @@ const LayoutsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState('');
   const [newLayoutDesc, setNewLayoutDesc] = useState('');
+  const [newLayoutProps, setNewLayoutProps] = useState({ dimensions: { w: '', d: '', h: '' } }); // --- NEW ---
   const [searchTerm, setSearchTerm] = useState('');
   const { token } = useAuthStore();
 
@@ -40,14 +41,32 @@ const LayoutsPage = () => {
     setFilteredLayouts(results);
   }, [searchTerm, layouts]);
 
+  // --- NEW ---
+  const handleDimensionChange = (e) => {
+    const { name, value } = e.target;
+    setNewLayoutProps(prev => ({
+      ...prev,
+      dimensions: {
+        ...prev.dimensions,
+        [name]: value
+      }
+    }));
+  };
+
   const handleAddLayout = async (e) => {
     e.preventDefault();
     try {
-      await createLayout({ name: newLayoutName, description: newLayoutDesc }, token);
+      const layoutData = {
+        name: newLayoutName,
+        description: newLayoutDesc,
+        properties: newLayoutProps
+      };
+      await createLayout(layoutData, token);
       toast.success('Layout created successfully!');
       setIsModalOpen(false);
       setNewLayoutName('');
       setNewLayoutDesc('');
+      setNewLayoutProps({ dimensions: { w: '', d: '', h: '' } });
       fetchLayouts();
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to create layout.';
@@ -130,6 +149,15 @@ const LayoutsPage = () => {
               className="w-full p-2 border rounded-md"
             ></textarea>
           </div>
+          {/* --- NEW --- */}
+          <fieldset className="border p-2 rounded-md">
+            <legend className="text-sm font-medium px-1">Dimensions (m)</legend>
+            <div className="grid grid-cols-3 gap-2">
+                <input type="number" name="w" value={newLayoutProps.dimensions.w} onChange={handleDimensionChange} placeholder="Width" className="w-full p-2 border rounded-md"/>
+                <input type="number" name="d" value={newLayoutProps.dimensions.d} onChange={handleDimensionChange} placeholder="Depth" className="w-full p-2 border rounded-md"/>
+                <input type="number" name="h" value={newLayoutProps.dimensions.h} onChange={handleDimensionChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
+            </div>
+          </fieldset>
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">
               Create New Layout

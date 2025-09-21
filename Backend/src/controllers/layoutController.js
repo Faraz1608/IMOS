@@ -6,7 +6,7 @@ import Sku from '../models/Sku.js';
 // Get all layouts in the system
 export const getLayouts = async (req, res) => {
   try {
-    const layouts = await Layout.find({}); // REMOVED: User-specific filter
+    const layouts = await Layout.find({});
     res.status(200).json(layouts);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
@@ -16,14 +16,15 @@ export const getLayouts = async (req, res) => {
 // Create a layout, associated with the creator for auditing
 export const createLayout = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, properties } = req.body; // --- NEW ---
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
     const layout = await Layout.create({
       name,
       description,
-      createdBy: req.user.id, // Keep creator for auditing
+      properties, // --- NEW ---
+      createdBy: req.user.id,
     });
     res.status(201).json(layout);
   } catch (error) {
@@ -38,7 +39,7 @@ export const createLayout = async (req, res) => {
 export const getLayoutById = async (req, res) => {
   try {
     const layout = await Layout.findById(req.params.id);
-    if (!layout) { // REMOVED: Ownership check
+    if (!layout) {
       return res.status(404).json({ message: 'Layout not found' });
     }
     res.status(200).json(layout);
@@ -50,12 +51,12 @@ export const getLayoutById = async (req, res) => {
 // Update any layout
 export const updateLayout = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, properties } = req.body; // --- NEW ---
     const layoutId = req.params.id;
 
     const layout = await Layout.findById(layoutId);
 
-    if (!layout) { // REMOVED: Ownership check
+    if (!layout) {
       return res.status(404).json({ message: 'Layout not found' });
     }
 
@@ -68,6 +69,7 @@ export const updateLayout = async (req, res) => {
 
     layout.name = name || layout.name;
     layout.description = description === undefined ? layout.description : description;
+    layout.properties = properties || layout.properties; // --- NEW ---
     const updatedLayout = await layout.save();
 
     res.status(200).json(updatedLayout);
@@ -81,10 +83,9 @@ export const updateLayout = async (req, res) => {
 export const deleteLayout = async (req, res) => {
   try {
     const layout = await Layout.findById(req.params.id);
-    if (!layout) { // REMOVED: Ownership check
+    if (!layout) {
       return res.status(404).json({ message: 'Layout not found' });
     }
-    // Note: Add logic here to handle associated locations and inventory before deleting
     await layout.deleteOne();
     res.status(200).json({ message: 'Layout removed' });
   } catch (error) {
@@ -92,45 +93,34 @@ export const deleteLayout = async (req, res) => {
   }
 };
 
+// --- UPDATED FUNCTION ---
 // Get layout stats (now system-wide)
 export const getLayoutStats = async (req, res) => {
   try {
     const layoutId = req.params.id;
     const layout = await Layout.findById(layoutId);
 
-    if (!layout) { // REMOVED: Ownership check
+    if (!layout) {
         return res.status(404).json({ message: 'Layout not found' });
     }
 
-    const layoutLocations = await Location.find({ layout: layoutId });
-    if (layoutLocations.length === 0) {
+    const layoutProps = layout.properties;
+    const layoutCapacity = (layoutProps?.dimensions?.w || 0) * (layoutProps?.dimensions?.d || 0) * (layoutProps?.dimensions?.h || 0);
+
+    if (layoutCapacity === 0) {
         return res.status(200).json({ layoutName: layout.name, utilization: 0 });
     }
 
-    let totalLayoutCapacity = 0;
+    const layoutLocations = await Location.find({ layout: layoutId });
+    let totalLocationsVolume = 0;
     for (const loc of layoutLocations) {
         const props = loc.properties;
         if (props && props.dimensions) {
-            totalLayoutCapacity += (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
+            totalLocationsVolume += (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
         }
     }
 
-    if (totalLayoutCapacity === 0) {
-        return res.status(200).json({ layoutName: layout.name, utilization: 0 });
-    }
-
-    const locationIds = layoutLocations.map(loc => loc._id);
-    const inventoryInLayout = await Inventory.find({ location: { $in: locationIds } }).populate('sku');
-
-    let totalOccupiedVolume = 0;
-    for (const item of inventoryInLayout) {
-        if (item.sku && item.sku.properties && item.sku.properties.dimensions) {
-            const skuVolumeCm3 = (item.sku.properties.dimensions.w || 0) * (item.sku.properties.dimensions.d || 0) * (item.sku.properties.dimensions.h || 0);
-            totalOccupiedVolume += (skuVolumeCm3 / 1000000) * item.quantity;
-        }
-    }
-
-    const utilization = (totalOccupiedVolume / totalLayoutCapacity) * 100;
+    const utilization = (totalLocationsVolume / layoutCapacity) * 100;
 
     res.status(200).json({
       layoutName: layout.name,
@@ -141,4 +131,3 @@ export const getLayoutStats = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-

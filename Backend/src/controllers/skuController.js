@@ -21,7 +21,7 @@ export const getSKUs = async (req, res) => {
 // @route   POST /api/skus
 export const createSKU = async (req, res) => {
   try {
-    const { skuCode, name, description, properties } = req.body;
+    const { skuCode, name, description, properties, category } = req.body; // Add category
     if (!skuCode || !name) {
       return res.status(400).json({ message: 'SKU code and name are required' });
     }
@@ -31,6 +31,7 @@ export const createSKU = async (req, res) => {
       name,
       description,
       properties,
+      category, // Add category
       createdBy: req.user.id, // Track user who created it
     });
 

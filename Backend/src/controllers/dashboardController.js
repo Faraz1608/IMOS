@@ -12,7 +12,7 @@ export const getDashboardStats = async (req, res) => {
     // --- KPI Card Stats ---
     const totalSkus = await Sku.countDocuments();
     const pendingDispatches = await Dispatch.countDocuments({ status: 'Pending Dispatch' });
-    
+
     // --- Role Distribution ---
     const userRoles = await User.aggregate([
       { $group: { _id: '$role', count: { $sum: 1 } } }
@@ -20,38 +20,29 @@ export const getDashboardStats = async (req, res) => {
     const activeUsers = await User.countDocuments();
 
     // --- Layout Space Utilization (Volumetric) ---
-    const layouts = await Layout.find({}); // Find all layouts
+    const layouts = await Layout.find({});
     const layoutStatsPromises = layouts.map(async (layout) => {
-      const locations = await Location.find({ layout: layout._id });
-      if (locations.length === 0) {
+      const layoutProps = layout.properties;
+      const layoutCapacity = (layoutProps?.dimensions?.w || 0) * (layoutProps?.dimensions?.d || 0) * (layoutProps?.dimensions?.h || 0);
+
+      if (layoutCapacity === 0) {
         return { name: layout.name, utilization: 0 };
       }
 
-      let totalLayoutCapacity = 0;
+      const locations = await Location.find({ layout: layout._id });
+      let totalLocationsVolume = 0;
       for (const loc of locations) {
-          const locProps = loc.properties;
-          totalLayoutCapacity += (locProps?.dimensions?.w || 0) * (locProps?.dimensions?.d || 0) * (locProps?.dimensions?.h || 0);
+        const props = loc.properties;
+        if (props && props.dimensions) {
+          totalLocationsVolume += (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
+        }
       }
 
-      if (totalLayoutCapacity === 0) {
-          return { name: layout.name, utilization: 0 };
-      }
+      const utilization = (totalLocationsVolume / layoutCapacity) * 100;
 
-      const inventoryInLayout = await Inventory.find({ location: { $in: locations.map(l => l._id) } }).populate('sku');
-      
-      let totalOccupiedVolume = 0;
-      for (const item of inventoryInLayout) {
-          const skuProps = item.sku?.properties;
-          const skuVolumeCm3 = (skuProps?.dimensions?.w || 0) * (skuProps?.dimensions?.d || 0) * (skuProps?.dimensions?.h || 0);
-          totalOccupiedVolume += (skuVolumeCm3 / 1000000) * item.quantity;
-      }
-      
-      const utilization = totalLayoutCapacity > 0 ? (totalOccupiedVolume / totalLayoutCapacity) * 100 : 0;
-      
-      // FIX: Ensure the 'name' property is always returned
       return {
         name: layout.name,
-        utilization: parseFloat(utilization),
+        utilization: parseFloat(utilization.toFixed(2)),
       };
     });
     const layoutUtilization = await Promise.all(layoutStatsPromises);

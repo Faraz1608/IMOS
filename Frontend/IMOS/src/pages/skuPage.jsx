@@ -12,9 +12,10 @@ const SkuPage = () => {
   const [filteredSkus, setFilteredSkus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newSkuData, setNewSkuData] = useState({ 
-    skuCode: '', 
+  const [newSkuData, setNewSkuData] = useState({
+    skuCode: '',
     name: '',
+    category: 'Raw Material',
     properties: {
         dimensions: { w: '', d: '', h: '' },
         weightKg: ''
@@ -33,7 +34,7 @@ const SkuPage = () => {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchAllSkus();
 
     const socket = io('http://localhost:7000');
@@ -51,7 +52,7 @@ const SkuPage = () => {
     );
     setFilteredSkus(results);
   }, [searchTerm, allSkus]);
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const [parent, child] = name.split('.');
@@ -65,15 +66,31 @@ const SkuPage = () => {
     }
   };
 
+  // --- UPDATED FUNCTION ---
   const handleAddSku = async (e) => {
     e.preventDefault();
+
+    // Create a deep copy to avoid mutating state directly
+    const submissionData = JSON.parse(JSON.stringify(newSkuData));
+
+    // Sanitize numeric inputs: convert empty strings to 0
+    const props = submissionData.properties;
+    props.dimensions.w = parseFloat(props.dimensions.w) || 0;
+    props.dimensions.d = parseFloat(props.dimensions.d) || 0;
+    props.dimensions.h = parseFloat(props.dimensions.h) || 0;
+    props.weightKg = parseFloat(props.weightKg) || 0;
+
     try {
-      await createSku(newSkuData, token);
+      await createSku(submissionData, token);
       toast.success('SKU created successfully!');
       setIsModalOpen(false);
-      setNewSkuData({ skuCode: '', name: '', properties: { dimensions: { w: '', d: '', h: '' }, weightKg: '' } });
-      fetchAllSkus();
-    } catch (error) { toast.error('Failed to create SKU.'); }
+      // Reset form to its initial state
+      setNewSkuData({ skuCode: '', name: '', category: 'Raw Material', properties: { dimensions: { w: '', d: '', h: '' }, weightKg: '' } });
+      fetchAllSkus(); // Refresh the list
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to create SKU.';
+      toast.error(errorMessage);
+    }
   };
 
   const handleDelete = async (skuId) => {
@@ -99,8 +116,8 @@ const SkuPage = () => {
               className="w-full max-w-xs p-2 pl-10 border rounded-lg"
             />
            </div>
-          <button 
-            onClick={() => setIsModalOpen(true)} 
+          <button
+            onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
           >
             <FiPlus /> Add New SKU
@@ -117,6 +134,7 @@ const SkuPage = () => {
                   <p className="font-semibold text-gray-800">{sku.skuCode}</p>
                   <p className="text-sm text-gray-600">{sku.name}</p>
                    <p className="text-xs text-gray-400">{sku.description}</p>
+                   <p className="text-xs text-blue-500 font-semibold">{sku.category}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link to={`/skus/${sku._id}`} className="flex items-center text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100">
@@ -142,6 +160,14 @@ const SkuPage = () => {
               <label htmlFor="name" className="block text-sm font-medium mb-1">Product Name</label>
               <input type="text" name="name" id="name" value={newSkuData.name} onChange={handleInputChange} required className="w-full p-2 border rounded-md"/>
             </div>
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium mb-1">Category</label>
+              <select name="category" id="category" value={newSkuData.category} onChange={handleInputChange} className="w-full p-2 border rounded-md">
+                <option value="Raw Material">Raw Material</option>
+                <option value="Finished Product">Finished Product</option>
+                <option value="Work In Progress">Work In Progress</option>
+              </select>
+            </div>
             <fieldset className="border p-2 rounded-md">
                 <legend className="text-sm font-medium px-1">Properties</legend>
                 <div className="space-y-2 p-2">
@@ -165,4 +191,3 @@ const SkuPage = () => {
 };
 
 export default SkuPage;
-

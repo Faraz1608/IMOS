@@ -6,7 +6,7 @@ const skuSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please add an SKU code'],
       trim: true,
-      unique: true, // SKU codes must be unique across the entire system
+      unique: true,
     },
     name: {
       type: String,
@@ -15,6 +15,10 @@ const skuSchema = new mongoose.Schema(
     },
     description: {
       type: String,
+    },
+    category: {
+      type: String,
+      default: 'Raw Material',
     },
     properties: {
       dimensions: {
@@ -26,7 +30,7 @@ const skuSchema = new mongoose.Schema(
     },
     velocity: {
       type: String,
-      enum: ['A', 'B', 'C', 'N/A'], // A=Fast, B=Medium, C=Slow, N/A=Not Classified
+      enum: ['A', 'B', 'C', 'N/A'],
       default: 'N/A',
     },
     createdBy: {

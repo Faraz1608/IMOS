@@ -12,6 +12,7 @@ const SkuDetailPage = () => {
     skuCode: '', 
     name: '', 
     description: '',
+    category: 'Raw Material', // --- NEW ---
     properties: {
         dimensions: { w: 0, d: 0, h: 0 },
         weightKg: 0,
@@ -98,6 +99,16 @@ const SkuDetailPage = () => {
           <label htmlFor="description" className="block text-sm font-medium">Description</label>
           <textarea id="description" name="description" value={sku.description} onChange={handleChange} rows="3" className="mt-1 block w-full p-2 border rounded-md"></textarea>
         </div>
+        
+        {/* --- NEW --- */}
+        <div>
+          <label htmlFor="category" className="block text-sm font-medium">Category</label>
+          <select id="category" name="category" value={sku.category} onChange={handleChange} className="mt-1 block w-full p-2 border rounded-md">
+            <option value="Raw Material">Raw Material</option>
+            <option value="Finished Product">Finished Product</option>
+            <option value="Work In Progress">Work In Progress</option>
+          </select>
+        </div>
 
         <fieldset className="border p-2 rounded-md">
             <legend className="text-sm font-medium px-1">Properties</legend>
@@ -123,4 +134,3 @@ const SkuDetailPage = () => {
 };
 
 export default SkuDetailPage;
-
