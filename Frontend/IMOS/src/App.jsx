@@ -13,7 +13,7 @@ import LayoutDetailPage from './pages/layoutDeatilPage.jsx';
 import SearchPage from './pages/searchPage.jsx';
 import RegisterPage from './pages/registerPage.jsx';
 import SkuDetailPage from './pages/skuDetailPage.jsx';
-import ReportsPage from './pages/reportsPage.jsx'; 
+import ReportsPage from './pages/reportsPage.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
 import UserManagementPage from './pages/userManagementPage.jsx';
 import DemandForecastingPage from './pages/demandForecasting.jsx'; // 1. Import the new page
@@ -27,9 +27,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        
-        <Route 
-          path="/" 
+
+        <Route
+          path="/"
           element={
             <ProtectedRoute>
               <AppLayout />
@@ -44,12 +44,12 @@ function App() {
           <Route path="skus/:id" element={<SkuDetailPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="optimizations" element={<OptimizationsPage />} />
-          <Route path="forecasting" element={<DemandForecastingPage />} /> {/* 2. Add the new route */}
+          <Route path="forecasting" element={<DemandForecastingPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route 
-            path="admin/users" 
-            element={<AdminRoute><UserManagementPage /></AdminRoute>} 
+          <Route
+            path="admin/users"
+            element={<AdminRoute><UserManagementPage /></AdminRoute>}
           />
         </Route>
       </Routes>

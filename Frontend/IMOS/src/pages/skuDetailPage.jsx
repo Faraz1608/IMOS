@@ -8,11 +8,11 @@ const SkuDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { token } = useAuthStore();
-  const [sku, setSku] = useState({ 
-    skuCode: '', 
-    name: '', 
+  const [sku, setSku] = useState({
+    skuCode: '',
+    name: '',
     description: '',
-    category: 'Raw Material', // --- NEW ---
+    category: 'Raw Material',
     properties: {
         dimensions: { w: 0, d: 0, h: 0 },
         weightKg: 0,
@@ -24,7 +24,6 @@ const SkuDetailPage = () => {
     const fetchSku = async () => {
       try {
         const res = await getSkuById(id, token);
-        // Ensure properties and dimensions exist to prevent errors
         const data = {
             ...res.data,
             properties: {
@@ -100,7 +99,6 @@ const SkuDetailPage = () => {
           <textarea id="description" name="description" value={sku.description} onChange={handleChange} rows="3" className="mt-1 block w-full p-2 border rounded-md"></textarea>
         </div>
         
-        {/* --- NEW --- */}
         <div>
           <label htmlFor="category" className="block text-sm font-medium">Category</label>
           <select id="category" name="category" value={sku.category} onChange={handleChange} className="mt-1 block w-full p-2 border rounded-md">
@@ -120,7 +118,7 @@ const SkuDetailPage = () => {
                     <input type="number" name="dimensions.h" value={sku.properties.dimensions.h} onChange={handleChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
                 </div>
                 <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">Weight (Kg)</label>
-                <input type="number" id="properties.weightKg" name="properties.weightKg" value={sku.properties.weightKg} onChange={handleChange} className="w-full p-2 border rounded-md"/>
+                <input type="number" id="properties.weightKg" name="properties.weightKg" value={sku.properties.weightKg} onChange={handleChange} min="0" max="1" step="0.01" className="w-full p-2 border rounded-md"/>
             </div>
         </fieldset>
 

@@ -19,51 +19,91 @@ export const getDashboardStats = async (req, res) => {
     ]);
     const activeUsers = await User.countDocuments();
 
-    // --- Layout Space Utilization (Volumetric) ---
+    // --- Layout & Global Utilization Calculation ---
     const layouts = await Layout.find({});
-    const layoutStatsPromises = layouts.map(async (layout) => {
-      const layoutProps = layout.properties;
-      const layoutCapacity = (layoutProps?.dimensions?.w || 0) * (layoutProps?.dimensions?.d || 0) * (layoutProps?.dimensions?.h || 0);
+    const allLocations = await Location.find({});
+    const allInventory = await Inventory.find({}).populate('sku');
 
-      if (layoutCapacity === 0) {
-        return { name: layout.name, utilization: 0 };
-      }
+    // Helper function to calculate volume
+    const getVolumeCm3 = (dimensions) => {
+        return (dimensions?.w || 0) * (dimensions?.d || 0) * (dimensions?.h || 0);
+    };
 
-      const locations = await Location.find({ layout: layout._id });
-      let totalLocationsVolume = 0;
-      for (const loc of locations) {
-        const props = loc.properties;
-        if (props && props.dimensions) {
-          totalLocationsVolume += (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
-        }
-      }
-
-      const utilization = (totalLocationsVolume / layoutCapacity) * 100;
-
-      return {
-        name: layout.name,
-        utilization: parseFloat(utilization.toFixed(2)),
-      };
+    // Map layout ID to stats
+    const layoutStats = {};
+    layouts.forEach(l => {
+        layoutStats[l._id.toString()] = {
+            name: l.name,
+            capacity: 0,
+            occupied: 0
+        };
     });
-    const layoutUtilization = await Promise.all(layoutStatsPromises);
+
+    // Calculate Capacity (Sum of Location Volumes)
+    const locationMap = {}; // Map location ID to layout ID for inventory lookup
+    allLocations.forEach(loc => {
+        // Convert Location volume (m³) to cm³ by multiplying by 1,000,000
+        const volCm3 = getVolumeCm3(loc.properties?.dimensions) * 1000000;
+        const layoutId = loc.layout.toString();
+        if (layoutStats[layoutId]) {
+            layoutStats[layoutId].capacity += volCm3;
+        }
+        locationMap[loc._id.toString()] = layoutId;
+    });
+
+    // Calculate Occupied (Sum of Inventory Volumes)
+    allInventory.forEach(inv => {
+        if (inv.sku && inv.location) {
+            const vol = getVolumeCm3(inv.sku.properties?.dimensions) * inv.quantity;
+            const layoutId = locationMap[inv.location.toString()];
+            if (layoutId && layoutStats[layoutId]) {
+                layoutStats[layoutId].occupied += vol;
+            }
+        }
+    });
+
+    // Compute Percentages
+    let totalSystemCapacity = 0;
+    let totalSystemOccupied = 0;
+
+    const formatUtilization = (val) => {
+        if (val === 0) return 0;
+        if (val < 0.01) return parseFloat(val.toFixed(10));
+        return parseFloat(val.toFixed(2));
+    };
+
+    const layoutUtilization = Object.values(layoutStats).map(stats => {
+        totalSystemCapacity += stats.capacity;
+        totalSystemOccupied += stats.occupied;
+
+        let util = 0;
+        if (stats.capacity > 0) {
+            util = (stats.occupied / stats.capacity) * 100;
+        }
+        return {
+            name: stats.name,
+            utilization: formatUtilization(Math.min(util, 100))
+        };
+    });
+
+    let globalUtilization = 0;
+    if (totalSystemCapacity > 0) {
+        globalUtilization = (totalSystemOccupied / totalSystemCapacity) * 100;
+    }
+    globalUtilization = formatUtilization(Math.min(globalUtilization, 100));
 
     // --- Recent Transactions ---
     const recentTransactions = await Transaction.aggregate([
         { $group: { _id: '$type', count: { $sum: 1 } } }
     ]);
 
-    // --- Inventory Status (Recent Dispatches) ---
-    const inventoryStatus = await Dispatch.find()
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .populate('items.sku', 'name');
-
     res.status(200).json({
       totalSkus,
       pendingDispatches,
       activeUsers,
       userRoles,
-      layoutUtilization,
+      layoutUtilization, // Array for Bar Graph
+      globalUtilization, // Single value for KPI Card
       recentTransactions,
     });
 

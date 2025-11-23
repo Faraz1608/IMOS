@@ -18,6 +18,7 @@ import userRoutes from './routes/userRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import dispatchRoutes from './routes/dispatchRoutes.js';
+import warehouseRoutes from './routes/warehouseRoutes.js';
 
 // Connect to MongoDB
 connectDB();
@@ -72,7 +73,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/dispatches', dispatchRoutes);
-
+app.use('/api/warehouse',warehouseRoutes)
 // Start server
 const PORT = process.env.PORT || 7000;
 server.listen(PORT, () => {

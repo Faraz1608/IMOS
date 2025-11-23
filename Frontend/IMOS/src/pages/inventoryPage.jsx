@@ -169,7 +169,8 @@ const InventoryPage = () => {
       setIsEditModalOpen(false);
       fetchInventory();
     } catch (error) {
-      toast.error('Failed to adjust quantity.');
+      const errorMessage = error.response?.data?.message || "Failed to adjust quantity.";
+      toast.error(errorMessage);
     }
   };
 
@@ -211,26 +212,31 @@ const InventoryPage = () => {
           <thead>
             <tr className="bg-blue-900 text-white">
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">SKU</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Product Name</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Category</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Location</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Batch #</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Serial #</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Quantity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Total Weight (Kg)</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr><td colSpan="7" className="text-center py-8">Loading inventory...</td></tr>
-            ) : (
+            {loading ? ( <tr><td colSpan="9" className="text-center py-8">Loading inventory...</td></tr> )
+            : (
               filteredInventory.map((item, index) => (
                 <tr key={item._id} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                   <td className="px-6 py-4 whitespace-nowrap">{item.sku?.skuCode || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{item.sku?.name || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.sku?.category || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.location?.locationCode || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">{item.batchNumber || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-xs">{item.serialNumber || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{item.quantity} units</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {((item.sku?.properties?.weightKg || 0) * item.quantity).toFixed(2)} Kg
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button onClick={() => openEditModal(item)} className="text-blue-600 hover:text-blue-900 mr-4"><FiEdit /></button>
                     <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-900"><FiTrash2 /></button>

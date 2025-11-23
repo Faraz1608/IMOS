@@ -3,7 +3,7 @@ import useAuthStore from '../store/authStore.js';
 import { getDashboardStats } from '../services/dashboardService.js';
 import StatCard from '../components/StatCard.jsx';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { FiPackage, FiTruck } from 'react-icons/fi';
+import { FiPackage, FiTruck, FiHome, FiUsers } from 'react-icons/fi';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -32,20 +32,27 @@ const DashboardPage = () => {
 
   const roleData = stats?.userRoles?.map(role => ({ name: role._id, value: role.count })) || [];
   const transactionData = stats?.recentTransactions?.map(t => ({ name: t._id, value: t.count })) || [];
-
-  const layoutChartMinWidth = (stats?.layoutUtilization?.length || 0) * 80;
+  
+  // Sort layout data for the chart
   const sortedLayoutData = stats?.layoutUtilization
       ? [...stats.layoutUtilization].sort((a, b) => a.name.localeCompare(b.name))
       : [];
-  const utilizationTooltipFormatter = (value) => {
-    if (value === 0) return '0%';
-    return `${value.toFixed(8)}%`;
-  };
+
+  const utilizationTooltipFormatter = (value) => `${value}%`;
+
+  // Calculate min width for the scrolling chart
+  const layoutChartMinWidth = (sortedLayoutData.length || 0) * 100;
 
   return (
     <div className="space-y-6">
-      {/* KPI & Role Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <StatCard 
+          icon={<FiHome className="w-6 h-6 text-purple-800" />}
+          title="Warehouse Utilization" 
+          value={`${stats?.globalUtilization ?? 0}%`}
+          colorClass="bg-purple-200"
+        />
         <StatCard 
           icon={<FiPackage className="w-6 h-6 text-blue-800" />}
           title="Total SKU's" 
@@ -58,51 +65,66 @@ const DashboardPage = () => {
           value={stats?.pendingDispatches ?? 0}
           colorClass="bg-orange-200"
         />
-        <div className="bg-white p-4 rounded-xl shadow-md flex justify-between items-center">
-            <div>
-                <p className="text-sm text-gray-500 font-medium">Role Distribution</p>
-                <p className="text-2xl font-bold text-gray-800">{stats?.activeUsers ?? 0} Active Users</p>
+         <div className="bg-white p-4 rounded-xl shadow-lg flex flex-col justify-between items-center relative overflow-hidden">
+            <div className="w-full flex justify-between items-center z-10">
+                 <div>
+                    <p className="text-sm text-gray-500 font-medium">Active Users</p>
+                    <p className="text-2xl font-bold text-gray-800">{stats?.activeUsers ?? 0}</p>
+                 </div>
+                 <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
+                    <FiUsers className="w-6 h-6" />
+                 </div>
             </div>
-            {/* Removed the unnecessary ResponsiveContainer */}
-            <PieChart width={100} height={100}>
-                <Pie data={roleData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={25} outerRadius={40} >
-                    {roleData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-            </PieChart>
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 opacity-20">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie data={roleData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={0} outerRadius={40}>
+                            {roleData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                        </Pie>
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
         </div>
       </div>
       
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* FIX: Layout chart now takes up 2/3 of the width */}
+        {/* Layout Utilization Bar Graph */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-           <h2 className="text-xl font-semibold mb-4 text-gray-700">Layout Space Utilization</h2>
+           <h2 className="text-xl font-semibold mb-4 text-gray-700">Layout Space Utilization (Max 100%)</h2>
            <div className="overflow-x-auto">
-             <ResponsiveContainer width="100%" height={250} minWidth={layoutChartMinWidth}>
-               <BarChart data={sortedLayoutData} style={{ minWidth: 600 }} barCategoryGap="30%">
+             <ResponsiveContainer width="100%" height={300} minWidth={layoutChartMinWidth > 600 ? layoutChartMinWidth : '100%'}>
+               <BarChart data={sortedLayoutData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                 <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={100} />
-                 <YAxis unit="%" />
-                 <YAxis unit="%" />
+                 <XAxis dataKey="name" />
+                 <YAxis unit="%" domain={[0, 100]} />
                  <Tooltip formatter={utilizationTooltipFormatter} />
-                 <Bar dataKey="utilization" name="Utilization" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={40} />
+                 <Bar dataKey="utilization" name="Utilization" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={50} />
                </BarChart>
              </ResponsiveContainer>
            </div>
+           {sortedLayoutData.length === 0 && (
+             <p className="text-center text-gray-400 mt-4">No layout data available</p>
+           )}
         </div>
-        {/* FIX: Transactions chart now takes up 1/3 of the width */}
+
+        {/* Recent Transactions Pie Chart */}
         <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md flex flex-col">
             <h2 className="text-xl font-semibold mb-4 text-gray-700">Recent Transactions</h2>
-            <div className="flex-grow flex items-center justify-center">
-                <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                        <Pie data={transactionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
-                            {transactionData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
+            <div className="flex-grow flex items-center justify-center min-h-[250px]">
+                {transactionData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                          <Pie data={transactionData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                              {transactionData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip />
+                          <Legend verticalAlign="bottom" height={36}/>
+                      </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-gray-400">No transactions recorded</p>
+                )}
             </div>
         </div>
       </div>      

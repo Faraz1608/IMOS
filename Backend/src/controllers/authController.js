@@ -8,7 +8,8 @@ import jwt from 'jsonwebtoken';
  * @access Public
  */
 export const registerUser = async (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { username, email, password } = req.body;
+  const role = 'INVENTORY_MANAGER';
 
   try {
     // Check if email or username already exists

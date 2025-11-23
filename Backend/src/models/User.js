@@ -21,8 +21,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['ADMIN', 'MANAGER', 'ANALYST', 'SUPERVISOR'],
-      default: 'SUPERVISOR',
+      enum: ['INVENTORY_MANAGER'],
+      default: 'INVENTORY_MANAGER',
     },
   },
   {

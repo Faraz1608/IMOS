@@ -16,14 +16,14 @@ export const getLayouts = async (req, res) => {
 // Create a layout, associated with the creator for auditing
 export const createLayout = async (req, res) => {
   try {
-    const { name, description, properties } = req.body; // --- NEW ---
+    const { name, description, properties } = req.body;
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
     const layout = await Layout.create({
       name,
       description,
-      properties, // --- NEW ---
+      properties,
       createdBy: req.user.id,
     });
     res.status(201).json(layout);
@@ -51,7 +51,7 @@ export const getLayoutById = async (req, res) => {
 // Update any layout
 export const updateLayout = async (req, res) => {
   try {
-    const { name, description, properties } = req.body; // --- NEW ---
+    const { name, description, properties } = req.body;
     const layoutId = req.params.id;
 
     const layout = await Layout.findById(layoutId);
@@ -69,7 +69,7 @@ export const updateLayout = async (req, res) => {
 
     layout.name = name || layout.name;
     layout.description = description === undefined ? layout.description : description;
-    layout.properties = properties || layout.properties; // --- NEW ---
+    layout.properties = properties || layout.properties;
     const updatedLayout = await layout.save();
 
     res.status(200).json(updatedLayout);
@@ -94,7 +94,7 @@ export const deleteLayout = async (req, res) => {
 };
 
 // --- UPDATED FUNCTION ---
-// Get layout stats (now system-wide)
+// Get layout stats, now based on SKU volume vs Location Capacity
 export const getLayoutStats = async (req, res) => {
   try {
     const layoutId = req.params.id;
@@ -104,27 +104,52 @@ export const getLayoutStats = async (req, res) => {
         return res.status(404).json({ message: 'Layout not found' });
     }
 
-    const layoutProps = layout.properties;
-    const layoutCapacity = (layoutProps?.dimensions?.w || 0) * (layoutProps?.dimensions?.d || 0) * (layoutProps?.dimensions?.h || 0);
-
-    if (layoutCapacity === 0) {
-        return res.status(200).json({ layoutName: layout.name, utilization: 0 });
-    }
-
+    // 1. Get all locations in this layout
     const layoutLocations = await Location.find({ layout: layoutId });
-    let totalLocationsVolume = 0;
+    
+    // 2. Calculate Total Capacity (Sum of Location Volumes in cm³)
+    let totalCapacityCm3 = 0;
+    const locationIds = [];
+    
     for (const loc of layoutLocations) {
         const props = loc.properties;
         if (props && props.dimensions) {
-            totalLocationsVolume += (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
+            const volM3 = (props.dimensions.w || 0) * (props.dimensions.d || 0) * (props.dimensions.h || 0);
+            totalCapacityCm3 += volM3 * 1000000; // Convert to cm³
+        }
+        locationIds.push(loc._id);
+    }
+
+    if (totalCapacityCm3 === 0) {
+        return res.status(200).json({ layoutName: layout.name, utilization: 0 });
+    }
+
+    // 3. Get all Inventory in these locations
+    const inventoryInLayout = await Inventory.find({ location: { $in: locationIds } }).populate('sku');
+
+    // 4. Calculate Total Occupied Volume (Sum of SKU Volumes in cm³)
+    let totalOccupiedCm3 = 0;
+    for (const item of inventoryInLayout) {
+        if (item.sku && item.sku.properties && item.sku.properties.dimensions) {
+            const skuDims = item.sku.properties.dimensions;
+            const skuVolCm3 = (skuDims.w || 0) * (skuDims.d || 0) * (skuDims.h || 0);
+            totalOccupiedCm3 += skuVolCm3 * item.quantity;
         }
     }
 
-    const utilization = (totalLocationsVolume / layoutCapacity) * 100;
+    // 5. Calculate Utilization
+    let utilization = (totalOccupiedCm3 / totalCapacityCm3) * 100;
+    utilization = Math.min(utilization, 100);
+
+    const formatUtilization = (val) => {
+        if (val === 0) return 0;
+        if (val < 0.01) return parseFloat(val.toFixed(10));
+        return parseFloat(val.toFixed(2));
+    };
 
     res.status(200).json({
       layoutName: layout.name,
-      utilization: parseFloat(utilization.toFixed(2)),
+      utilization: formatUtilization(utilization),
     });
   } catch (error) {
     console.error('Error in getLayoutStats:', error);

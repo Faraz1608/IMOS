@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiBell } from 'react-icons/fi';
 import useAuthStore from '../store/authStore';
-import { getNotifications, markAllAsRead } from '../services/notificationService';
+import { getNotifications, markAllAsRead, deleteNotification } from '../services/notificationService';
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
 
@@ -53,8 +53,18 @@ const NotificationBell = () => {
       }
     }
   };
-  
-  // ... (Add JSX for rendering the bell and dropdown)
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    try {
+      await deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n._id !== id));
+      toast.success('Notification removed');
+    } catch (error) {
+      toast.error('Failed to delete notification');
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button onClick={handleToggle} className="relative">
@@ -70,11 +80,20 @@ const NotificationBell = () => {
           <div className="max-h-96 overflow-y-auto">
             {notifications.length > 0 ? (
               notifications.map(notification => (
-                <div key={notification._id} className={`p-4 border-b hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}`}>
-                  <p className="text-sm text-gray-700">{notification.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(notification.createdAt).toLocaleString()}
-                  </p>
+                <div key={notification._id} className={`p-4 border-b hover:bg-gray-50 flex justify-between items-start ${!notification.read ? 'bg-blue-50' : ''}`}>
+                  <div>
+                    <p className="text-sm text-gray-700">{notification.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => handleDelete(e, notification._id)}
+                    className="text-gray-400 hover:text-red-500 ml-2"
+                    title="Delete"
+                  >
+                    &times;
+                  </button>
                 </div>
               ))
             ) : (

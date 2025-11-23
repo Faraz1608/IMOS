@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false, // Changed to false for global notifications
       ref: 'User',
     },
     message: {
@@ -18,6 +18,10 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    deletedBy: [{ // Array of users who have deleted this global notification
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
   },
   {
     timestamps: true,

@@ -1,21 +1,11 @@
 import mongoose from 'mongoose';
 
-const layoutSchema = new mongoose.Schema(
+const warehouseSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please add a layout name'],
-      trim: true,
+      required: true,
       unique: true,
-    },
-    description: {
-      type: String,
-      required: false,
-    },
-    // --- NEW FIELD ---
-    warehouse: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Warehouse',
     },
     properties: {
       dimensions: {
@@ -35,6 +25,5 @@ const layoutSchema = new mongoose.Schema(
   }
 );
 
-const Layout = mongoose.model('Layout', layoutSchema);
-
-export default Layout;
+const Warehouse = mongoose.model('Warehouse', warehouseSchema);
+export default Warehouse;

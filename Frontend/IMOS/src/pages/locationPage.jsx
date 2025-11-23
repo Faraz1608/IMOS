@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
 import { getLocationsByLayout, createLocation, updateLocation, deleteLocation, getLocationStats } from '../services/locationService.js';
 import Modal from '../components/modal.jsx';
-import { FiPlus, FiEdit, FiTrash2, FiSearch, FiPercent } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiSearch, FiArchive } from 'react-icons/fi';
 import io from 'socket.io-client';
 
 const LocationsPage = () => {
@@ -16,7 +16,6 @@ const LocationsPage = () => {
   const [modalMode, setModalMode] = useState('add');
   const [currentLocation, setCurrentLocation] = useState(null);
   
-  // State for the form
   const [locationCode, setLocationCode] = useState('');
   const [properties, setProperties] = useState({
     dimensions: { w: '', d: '', h: '' },
@@ -32,7 +31,6 @@ const LocationsPage = () => {
       const response = await getLocationsByLayout(layoutId, token);
       setLocations(response.data);
 
-      // Fetch stats for each location
       const statsPromises = response.data.map(loc => getLocationStats(layoutId, loc._id, token));
       const statsResults = await Promise.all(statsPromises);
       
@@ -95,7 +93,6 @@ const LocationsPage = () => {
     setModalMode('edit');
     setCurrentLocation(location);
     setLocationCode(location.locationCode);
-    // Temperature property is no longer set
     setProperties(location.properties || { dimensions: { w: '', d: '', h: '' }, weightCapacityKg: '' });
     setIsModalOpen(true);
   };
@@ -113,7 +110,8 @@ const LocationsPage = () => {
       toast.success(`Location ${modalMode === 'add' ? 'created' : 'updated'}!`);
       setIsModalOpen(false);
     } catch (error) { 
-      toast.error(`Failed to ${modalMode} location.`); 
+      const errorMessage = error.response?.data?.message || `Failed to ${modalMode} location.`;
+      toast.error(errorMessage);
     }
   };
 
@@ -175,7 +173,7 @@ const LocationsPage = () => {
                     </div>
                 </div>
                 <div className="mt-3 flex items-center gap-3">
-                    <FiPercent className="text-gray-400" />
+                    <FiArchive className="text-gray-400" title="Space Utilization" />
                     <UtilizationBar utilization={locationStats[location._id]?.spaceUtilization} />
                     <span className="text-sm font-medium text-gray-600 w-16 text-right">{locationStats[location._id]?.spaceUtilization || '0.00%'}</span>
                 </div>
@@ -203,7 +201,6 @@ const LocationsPage = () => {
             <label htmlFor="weightCapacityKg" className="block text-sm font-medium mb-1">Weight Capacity (Kg)</label>
             <input type="number" id="weightCapacityKg" name="weightCapacityKg" value={properties.weightCapacityKg} onChange={handlePropertiesChange} className="w-full p-2 border rounded-md"/>
           </div>
-          {/* Temperature dropdown removed from here */}
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg">{modalMode === 'add' ? 'Create New Location' : 'Save Changes'}</button>
           </div>
@@ -214,4 +211,3 @@ const LocationsPage = () => {
 };
 
 export default LocationsPage;
-

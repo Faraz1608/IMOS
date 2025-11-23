@@ -66,14 +66,11 @@ const SkuPage = () => {
     }
   };
 
-  // --- UPDATED FUNCTION ---
   const handleAddSku = async (e) => {
     e.preventDefault();
 
-    // Create a deep copy to avoid mutating state directly
     const submissionData = JSON.parse(JSON.stringify(newSkuData));
 
-    // Sanitize numeric inputs: convert empty strings to 0
     const props = submissionData.properties;
     props.dimensions.w = parseFloat(props.dimensions.w) || 0;
     props.dimensions.d = parseFloat(props.dimensions.d) || 0;
@@ -84,9 +81,8 @@ const SkuPage = () => {
       await createSku(submissionData, token);
       toast.success('SKU created successfully!');
       setIsModalOpen(false);
-      // Reset form to its initial state
       setNewSkuData({ skuCode: '', name: '', category: 'Raw Material', properties: { dimensions: { w: '', d: '', h: '' }, weightKg: '' } });
-      fetchAllSkus(); // Refresh the list
+      fetchAllSkus();
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to create SKU.';
       toast.error(errorMessage);
@@ -178,7 +174,7 @@ const SkuPage = () => {
                         <input type="number" name="dimensions.h" value={newSkuData.properties.dimensions.h} onChange={handleInputChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
                     </div>
                     <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">Weight (Kg)</label>
-                    <input type="number" id="properties.weightKg" name="properties.weightKg" value={newSkuData.properties.weightKg} onChange={handleInputChange} className="w-full p-2 border rounded-md"/>
+                    <input type="number" id="properties.weightKg" name="properties.weightKg" value={newSkuData.properties.weightKg} onChange={handleInputChange} min="0" max="1" step="0.01" className="w-full p-2 border rounded-md"/>
                 </div>
             </fieldset>
           <div className="flex justify-center pt-4">
