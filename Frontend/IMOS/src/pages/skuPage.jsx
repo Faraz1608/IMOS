@@ -17,8 +17,8 @@ const SkuPage = () => {
     name: '',
     category: 'Raw Material',
     properties: {
-        dimensions: { w: '', d: '', h: '' },
-        weightKg: ''
+      dimensions: { w: '', d: '', h: '' },
+      weightKg: ''
     }
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +30,8 @@ const SkuPage = () => {
       const response = await getSkus(token);
       setAllSkus(response.data);
       setFilteredSkus(response.data);
-    } catch (error) { toast.error('Could not fetch SKUs.');
+    } catch (error) {
+      toast.error('Could not fetch SKUs.');
     } finally { setLoading(false); }
   };
 
@@ -39,8 +40,8 @@ const SkuPage = () => {
 
     const socket = io('http://localhost:7000');
     socket.on('skus_updated', () => {
-        toast('SKU list has been updated.', { icon: '🔄' });
-        fetchAllSkus();
+      toast('SKU list has been updated.', { icon: '🔄' });
+      fetchAllSkus();
     });
     return () => { socket.disconnect(); };
   }, [token]);
@@ -58,11 +59,11 @@ const SkuPage = () => {
     const [parent, child] = name.split('.');
 
     if (parent === 'dimensions' && child) {
-        setNewSkuData(prev => ({ ...prev, properties: { ...prev.properties, dimensions: { ...prev.properties.dimensions, [child]: value } } }));
+      setNewSkuData(prev => ({ ...prev, properties: { ...prev.properties, dimensions: { ...prev.properties.dimensions, [child]: value } } }));
     } else if (parent === 'properties' && child) {
-        setNewSkuData(prev => ({ ...prev, properties: { ...prev.properties, [child]: value } }));
+      setNewSkuData(prev => ({ ...prev, properties: { ...prev.properties, [child]: value } }));
     } else {
-        setNewSkuData({ ...newSkuData, [name]: value });
+      setNewSkuData({ ...newSkuData, [name]: value });
     }
   };
 
@@ -104,14 +105,14 @@ const SkuPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Products/SKUs</h1>
         <div className="flex items-center gap-4">
-           <div className="relative">
-             <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-             <input
+          <div className="relative">
+            <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+            <input
               type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by SKU Code or Name"
               className="w-full max-w-xs p-2 pl-10 border rounded-lg"
             />
-           </div>
+          </div>
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
@@ -129,54 +130,54 @@ const SkuPage = () => {
                 <div>
                   <p className="font-semibold text-gray-800">{sku.skuCode}</p>
                   <p className="text-sm text-gray-600">{sku.name}</p>
-                   <p className="text-xs text-gray-400">{sku.description}</p>
-                   <p className="text-xs text-blue-500 font-semibold">{sku.category}</p>
+                  <p className="text-xs text-gray-400">{sku.description}</p>
+                  <p className="text-xs text-blue-500 font-semibold">{sku.category}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link to={`/skus/${sku._id}`} className="flex items-center text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100">
-                    <FiEdit size={14}/> Edit
+                    <FiEdit size={14} /> Edit
                   </Link>
                   <button onClick={() => handleDelete(sku._id)} className="flex items-center text-red-600 px-3 py-1 rounded-lg hover:bg-red-100">
-                    <FiTrash2 size={14}/> Delete
+                    <FiTrash2 size={14} /> Delete
                   </button>
                 </div>
               </div>
             ))
-          ) : ( <p className="text-center text-gray-500 py-8">No SKUs found.</p> )
+          ) : (<p className="text-center text-gray-500 py-8">No SKUs found.</p>)
         )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New SKU">
         <form onSubmit={handleAddSku} className="space-y-4 pt-4">
-            <div>
-              <label htmlFor="skuCode" className="block text-sm font-medium mb-1">SKU Code</label>
-              <input type="text" name="skuCode" id="skuCode" value={newSkuData.skuCode} onChange={handleInputChange} required className="w-full p-2 border rounded-md"/>
+          <div>
+            <label htmlFor="skuCode" className="block text-sm font-medium mb-1">SKU Code</label>
+            <input type="text" name="skuCode" id="skuCode" value={newSkuData.skuCode} onChange={handleInputChange} required className="w-full p-2 border rounded-md" />
+          </div>
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium mb-1">Product Name</label>
+            <input type="text" name="name" id="name" value={newSkuData.name} onChange={handleInputChange} required className="w-full p-2 border rounded-md" />
+          </div>
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium mb-1">Category</label>
+            <select name="category" id="category" value={newSkuData.category} onChange={handleInputChange} className="w-full p-2 border rounded-md">
+              <option value="Raw Material">Raw Material</option>
+              <option value="Finished Product">Finished Product</option>
+              <option value="Work In Progress">Work In Progress</option>
+            </select>
+          </div>
+          <fieldset className="border p-2 rounded-md">
+            <legend className="text-sm font-medium px-1">Properties</legend>
+            <div className="space-y-2 p-2">
+              <label className="block text-sm font-medium">Dimensions (cm)</label>
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" name="dimensions.w" value={newSkuData.properties.dimensions.w} onChange={handleInputChange} placeholder="Width" className="w-full p-2 border rounded-md" />
+                <input type="number" name="dimensions.d" value={newSkuData.properties.dimensions.d} onChange={handleInputChange} placeholder="Depth" className="w-full p-2 border rounded-md" />
+                <input type="number" name="dimensions.h" value={newSkuData.properties.dimensions.h} onChange={handleInputChange} placeholder="Height" className="w-full p-2 border rounded-md" />
+              </div>
+              <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">Weight (Kg)</label>
+              <input type="number" id="properties.weightKg" name="properties.weightKg" value={newSkuData.properties.weightKg} onChange={handleInputChange} min="0" step="0.01" className="w-full p-2 border rounded-md" />
             </div>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1">Product Name</label>
-              <input type="text" name="name" id="name" value={newSkuData.name} onChange={handleInputChange} required className="w-full p-2 border rounded-md"/>
-            </div>
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium mb-1">Category</label>
-              <select name="category" id="category" value={newSkuData.category} onChange={handleInputChange} className="w-full p-2 border rounded-md">
-                <option value="Raw Material">Raw Material</option>
-                <option value="Finished Product">Finished Product</option>
-                <option value="Work In Progress">Work In Progress</option>
-              </select>
-            </div>
-            <fieldset className="border p-2 rounded-md">
-                <legend className="text-sm font-medium px-1">Properties</legend>
-                <div className="space-y-2 p-2">
-                    <label className="block text-sm font-medium">Dimensions (cm)</label>
-                    <div className="grid grid-cols-3 gap-2">
-                        <input type="number" name="dimensions.w" value={newSkuData.properties.dimensions.w} onChange={handleInputChange} placeholder="Width" className="w-full p-2 border rounded-md"/>
-                        <input type="number" name="dimensions.d" value={newSkuData.properties.dimensions.d} onChange={handleInputChange} placeholder="Depth" className="w-full p-2 border rounded-md"/>
-                        <input type="number" name="dimensions.h" value={newSkuData.properties.dimensions.h} onChange={handleInputChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
-                    </div>
-                    <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">Weight (Kg)</label>
-                    <input type="number" id="properties.weightKg" name="properties.weightKg" value={newSkuData.properties.weightKg} onChange={handleInputChange} min="0" max="1" step="0.01" className="w-full p-2 border rounded-md"/>
-                </div>
-            </fieldset>
+          </fieldset>
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">Create New SKU</button>
           </div>
