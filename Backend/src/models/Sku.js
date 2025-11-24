@@ -29,7 +29,6 @@ const skuSchema = new mongoose.Schema(
       weightKg: { 
         type: Number,
         min: 0,
-        max: 1
       },
     },
     velocity: {

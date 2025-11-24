@@ -112,3 +112,101 @@ export const getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// --- NEW FUNCTION ---
+// Get detailed utilization stats (Layout -> Location hierarchy)
+export const getDetailedUtilization = async (req, res) => {
+    try {
+        const layouts = await Layout.find({});
+        const allLocations = await Location.find({});
+        const allInventory = await Inventory.find({}).populate('sku');
+
+        // Helper function to calculate volume in cm³
+        const getVolumeCm3 = (dimensions) => {
+            return (dimensions?.w || 0) * (dimensions?.d || 0) * (dimensions?.h || 0);
+        };
+
+        // 1. Initialize Layout Map
+        const layoutMap = {};
+        layouts.forEach(l => {
+            layoutMap[l._id.toString()] = {
+                id: l._id,
+                name: l.name,
+                capacity: 0,
+                occupied: 0,
+                locations: []
+            };
+        });
+
+        // 2. Process Locations
+        const locationMap = {}; // Map location ID to its stats object
+        allLocations.forEach(loc => {
+            const layoutId = loc.layout.toString();
+            if (layoutMap[layoutId]) {
+                // Location Capacity in cm³ (stored as m³ in DB, so * 1,000,000)
+                const capacityCm3 = getVolumeCm3(loc.properties?.dimensions) * 1000000;
+                
+                const locStats = {
+                    id: loc._id,
+                    code: loc.locationCode,
+                    capacity: capacityCm3,
+                    occupied: 0, // Will be filled by inventory
+                    utilization: 0
+                };
+
+                layoutMap[layoutId].locations.push(locStats);
+                layoutMap[layoutId].capacity += capacityCm3;
+                locationMap[loc._id.toString()] = locStats;
+            }
+        });
+
+        // 3. Process Inventory to fill Occupied space
+        allInventory.forEach(inv => {
+            if (inv.sku && inv.location) {
+                const locId = inv.location.toString();
+                if (locationMap[locId]) {
+                    const skuVol = getVolumeCm3(inv.sku.properties?.dimensions);
+                    const totalInvVol = skuVol * inv.quantity;
+
+                    locationMap[locId].occupied += totalInvVol;
+                    
+                    // Also update parent layout occupied
+                    const layoutId = allLocations.find(l => l._id.toString() === locId)?.layout.toString();
+                    if (layoutId && layoutMap[layoutId]) {
+                        layoutMap[layoutId].occupied += totalInvVol;
+                    }
+                }
+            }
+        });
+
+        // 4. Calculate Percentages and Format
+        const formatUtil = (occupied, capacity) => {
+            if (capacity === 0) return 0;
+            const pct = (occupied / capacity) * 100;
+            return Math.min(parseFloat(pct.toFixed(2)), 100);
+        };
+
+        const result = Object.values(layoutMap).map(layout => {
+            // Calculate Layout Utilization
+            layout.utilization = formatUtil(layout.occupied, layout.capacity);
+            
+            // Calculate Location Utilization
+            layout.locations.forEach(loc => {
+                loc.utilization = formatUtil(loc.occupied, loc.capacity);
+                // Add unutilized for convenience
+                loc.unutilized = loc.capacity - loc.occupied;
+            });
+
+            // Sort locations by code
+            layout.locations.sort((a, b) => a.code.localeCompare(b.code));
+            
+            return layout;
+        });
+
+        res.status(200).json(result);
+
+    } catch (error) {
+        console.error('Error fetching detailed utilization:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

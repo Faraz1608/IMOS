@@ -1,14 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { 
-  getInventoryReport, 
-  getStockoutReport, 
+import {
+  getInventoryReport,
+  getStockoutReport,
   getSlowMovingReport,
-  getGiReport,  // --- NEW ---
-  getGrReport   // --- NEW ---
+  getGiReport,
+  getGrReport
 } from '../services/reportService';
 import { getAgingReport } from '../services/analyticsService';
+import { getDetailedUtilization } from '../services/dashboardService';
+import UtilizationTable from '../components/UtilizationTable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FiDownload } from 'react-icons/fi';
 
@@ -16,97 +19,109 @@ const ReportsPage = () => {
   const { token } = useAuthStore();
   const [loadingStates, setLoadingStates] = useState({});
   const [agingData, setAgingData] = useState([]);
+  const [utilizationData, setUtilizationData] = useState([]); // --- NEW ---
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
-  // Fetch Aging Report Data
+  // Fetch Reports Data
   useEffect(() => {
-    const fetchReport = async () => {
+    const fetchData = async () => {
       try {
         setLoadingAnalytics(true);
-        const res = await getAgingReport(token);
-        const sortedData = [...res.data].sort((a, b) => b.ageInDays - a.ageInDays);
-        setAgingData(sortedData.slice(0, 10)); // Top 10 oldest
+
+        // Parallel fetch
+        const [agingRes, utilRes] = await Promise.all([
+          getAgingReport(token),
+          getDetailedUtilization(token)
+        ]);
+
+        // Process Aging Data
+        const sortedAging = [...agingRes.data].sort((a, b) => b.ageInDays - a.ageInDays);
+        setAgingData(sortedAging.slice(0, 10));
+
+        // Process Utilization Data
+        setUtilizationData(utilRes.data);
+
       } catch (error) {
-        toast.error('Could not fetch aging report.');
+        toast.error('Could not fetch analytics data.');
       } finally {
         setLoadingAnalytics(false);
       }
     };
-    fetchReport();
+    fetchData();
   }, [token]);
 
   // Generic download handler for all report types
   const handleDownload = async (reportType) => {
-      setLoadingStates(prev => ({ ...prev, [reportType]: true }));
-      const toastId = toast.loading(`Generating ${reportType} report...`);
+    setLoadingStates(prev => ({ ...prev, [reportType]: true }));
+    const toastId = toast.loading(`Generating ${reportType} report...`);
 
-      let serviceCall;
-      let fileName;
+    let serviceCall;
+    let fileName;
 
-      switch(reportType) {
-          case 'inventory':
-              serviceCall = getInventoryReport(token);
-              fileName = 'inventory-report.csv';
-              break;
-          case 'stockout':
-              serviceCall = getStockoutReport(token);
-              fileName = 'stockout-report.csv';
-              break;
-          case 'slowMoving':
-              serviceCall = getSlowMovingReport(token);
-              fileName = 'slow-moving-report.csv';
-              break;
-          case 'giReport': // --- NEW ---
-              serviceCall = getGiReport(token);
-              fileName = 'gi-report.csv';
-              break;
-          case 'grReport': // --- NEW ---
-              serviceCall = getGrReport(token);
-              fileName = 'gr-report.csv';
-              break;
-          default:
-              toast.error('Unknown report type.', { id: toastId });
-              setLoadingStates(prev => ({ ...prev, [reportType]: false }));
-              return;
-      }
+    switch (reportType) {
+      case 'inventory':
+        serviceCall = getInventoryReport(token);
+        fileName = 'inventory-report.csv';
+        break;
+      case 'stockout':
+        serviceCall = getStockoutReport(token);
+        fileName = 'stockout-report.csv';
+        break;
+      case 'slowMoving':
+        serviceCall = getSlowMovingReport(token);
+        fileName = 'slow-moving-report.csv';
+        break;
+      case 'giReport': // --- NEW ---
+        serviceCall = getGiReport(token);
+        fileName = 'gi-report.csv';
+        break;
+      case 'grReport': // --- NEW ---
+        serviceCall = getGrReport(token);
+        fileName = 'gr-report.csv';
+        break;
+      default:
+        toast.error('Unknown report type.', { id: toastId });
+        setLoadingStates(prev => ({ ...prev, [reportType]: false }));
+        return;
+    }
 
-      try {
-          const response = await serviceCall;
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', fileName);
-          document.body.appendChild(link);
-          link.click();
-          link.parentNode.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          toast.success('Report downloaded!', { id: toastId });
-      } catch (error) {
-          const message = error.response?.status === 404
-              ? 'No data found for this report.'
-              : 'Failed to download report.';
-          toast.error(message, { id: toastId });
-      } finally {
-          setLoadingStates(prev => ({ ...prev, [reportType]: false }));
-      }
+    try {
+      const response = await serviceCall;
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Report downloaded!', { id: toastId });
+    } catch (error) {
+      const message = error.response?.status === 404
+        ? 'No data found for this report.'
+        : 'Failed to download report.';
+      toast.error(message, { id: toastId });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [reportType]: false }));
+    }
   };
-  
+
   const ReportCard = ({ title, description, reportType, buttonText, colorClass }) => {
     const isLoading = loadingStates[reportType];
     const buttonClasses = `mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg disabled:bg-gray-400 ${!isLoading ? colorClass : ''}`;
 
     return (
-        <div className="p-6 bg-gray-50 rounded-lg shadow-sm flex flex-col">
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <p className="text-gray-600 mt-1 flex-grow">{description}</p>
-            <button 
-              onClick={() => handleDownload(reportType)} 
-              disabled={isLoading}
-              className={buttonClasses}
-            >
-              <FiDownload /> {isLoading ? 'Generating...' : buttonText}
-            </button>
-        </div>
+      <div className="p-6 bg-gray-50 rounded-lg shadow-sm flex flex-col">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <p className="text-gray-600 mt-1 flex-grow">{description}</p>
+        <button
+          onClick={() => handleDownload(reportType)}
+          disabled={isLoading}
+          className={buttonClasses}
+        >
+          <FiDownload /> {isLoading ? 'Generating...' : buttonText}
+        </button>
+      </div>
     );
   };
 
@@ -114,49 +129,58 @@ const ReportsPage = () => {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <ReportCard 
-            title="Full Inventory Report"
-            description="Download a CSV of all current inventory records, including quantities, locations, and batch/serial numbers."
-            reportType="inventory"
-            buttonText="Download Inventory Report"
-            colorClass="bg-blue-800 hover:bg-blue-900"
-          />
-          <ReportCard 
-            title="Stockout Report"
-            description="Generate a report of all items with a quantity of zero, requiring immediate reordering attention."
-            reportType="stockout"
-            buttonText="Download Stockout Report"
-            colorClass="bg-red-600 hover:bg-red-700"
-          />
-          <ReportCard 
-            title="Slow-Moving Report"
-            description="Identify items that have not had any outbound movement in the last 90 days, tying up capital and space."
-            reportType="slowMoving"
-            buttonText="Download Slow-Moving Report"
-            colorClass="bg-yellow-500 hover:bg-yellow-600"
-          />
-      </div>
-      
-      {/* --- NEW SECTION --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <ReportCard 
-            title="Goods Issue Report"
-            description="Download a detailed report of all outbound inventory transactions (Goods Issue)."
-            reportType="giReport"
-            buttonText="Download GI Report"
-            colorClass="bg-purple-800 hover:bg-purple-900"
-          />
-          <ReportCard 
-            title="Goods Receipt Report"
-            description="Download a detailed report of all inbound inventory transactions (Goods Receipt)."
-            reportType="grReport"
-            buttonText="Download GR Report"
-            colorClass="bg-green-800 hover:bg-green-900"
-          />
+        <ReportCard
+          title="Full Inventory Report"
+          description="Download a CSV of all current inventory records, including quantities, locations, and batch/serial numbers."
+          reportType="inventory"
+          buttonText="Download Inventory Report"
+          colorClass="bg-blue-800 hover:bg-blue-900"
+        />
+        <ReportCard
+          title="Stockout Report"
+          description="Generate a report of all items with a quantity of zero, requiring immediate reordering attention."
+          reportType="stockout"
+          buttonText="Download Stockout Report"
+          colorClass="bg-red-600 hover:bg-red-700"
+        />
+        <ReportCard
+          title="Slow-Moving Report"
+          description="Identify items that have not had any outbound movement in the last 90 days, tying up capital and space."
+          reportType="slowMoving"
+          buttonText="Download Slow-Moving Report"
+          colorClass="bg-yellow-500 hover:bg-yellow-600"
+        />
       </div>
 
+      {/* --- NEW SECTION --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <ReportCard
+          title="Goods Issue Report"
+          description="Download a detailed report of all outbound inventory transactions (Goods Issue)."
+          reportType="giReport"
+          buttonText="Download GI Report"
+          colorClass="bg-purple-800 hover:bg-purple-900"
+        />
+        <ReportCard
+          title="Goods Receipt Report"
+          description="Download a detailed report of all inbound inventory transactions (Goods Receipt)."
+          reportType="grReport"
+          buttonText="Download GR Report"
+          colorClass="bg-green-800 hover:bg-green-900"
+        />
+      </div>
+
+
+      {/* --- SPACE UTILIZATION SECTION --- */}
+      <div className="p-6 bg-gray-50 rounded-lg shadow-sm">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">Space Utilization</h2>
+        <p className="text-gray-600 mb-4">Detailed breakdown of capacity and usage by Layout and Location.</p>
+        {loadingAnalytics ? <p>Loading utilization data...</p> : (
+          <UtilizationTable data={utilizationData} />
+        )}
+      </div>
 
       <div className="p-6 bg-gray-50 rounded-lg shadow-sm">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">Inventory Aging Report (Top 10 Oldest Items)</h2>

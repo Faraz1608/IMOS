@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDashboardStats } from '../controllers/dashboardController.js';
+import { getDashboardStats, getDetailedUtilization } from '../controllers/dashboardController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -8,5 +8,6 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/stats').get(getDashboardStats);
+router.route('/utilization').get(getDetailedUtilization);
 
 export default router;
