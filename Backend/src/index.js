@@ -25,18 +25,30 @@ connectDB();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// --- 1. Define Allowed Origins (Fix for CORS Error) ---
+const allowedOrigins = [
+  "http://localhost:5173",          // Local development
+  "https://imosfc.netlify.app",     // Production Frontend (Netlify)
+  process.env.FRONTEND_URL          // Optional env variable
+].filter(Boolean); // Removes undefined values if env var is missing
+
+// --- 2. Apply CORS Middleware to Express ---
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 app.use(express.json());
 
-// Create HTTP server and Socket.io instance
+// Create HTTP server
 const server = http.createServer(app);
+
+// --- 3. Apply CORS to Socket.io ---
 const io = new Server(server, { 
   cors: {
-    // In production, this should be your Netlify URL (e.g., "https://your-site.netlify.app")
-    // You can use an environment variable here too
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", 
-    methods: ["GET", "POST"]
+    origin: allowedOrigins, // Use the same origins list
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -75,7 +87,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/dispatches', dispatchRoutes);
-app.use('/api/warehouse',warehouseRoutes)
+app.use('/api/warehouse', warehouseRoutes);
+
 // Start server
 const PORT = process.env.PORT || 7000;
 server.listen(PORT, () => {

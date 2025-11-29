@@ -92,7 +92,7 @@ const DashboardPage = () => {
         {/* Layout Utilization Bar Graph */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
            <h2 className="text-xl font-semibold mb-4 text-gray-700">Layout Space Utilization (Max 100%)</h2>
-           <div className="overflow-x-auto">
+           <div className="overflow-x-auto h-96">
              <ResponsiveContainer width="100%" height={300} minWidth={layoutChartMinWidth > 600 ? layoutChartMinWidth : '100%'}>
                <BarChart data={sortedLayoutData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
