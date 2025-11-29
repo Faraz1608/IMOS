@@ -9,6 +9,8 @@ import Modal from '../components/modal.jsx';
 import { FiPlus, FiSearch, FiEdit, FiTrash2, FiMinusCircle, FiPlusCircle } from 'react-icons/fi';
 import io from 'socket.io-client';
 
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+
 const InventoryPage = () => {
   const { token } = useAuthStore();
   const [inventory, setNewInventory] = useState([]);
@@ -49,7 +51,9 @@ const InventoryPage = () => {
   useEffect(() => {
     fetchInventory();
 
-    const socket = io('http://localhost:7000');
+    // UPDATE THIS LINE
+    const socket = io(SOCKET_URL);
+    
     socket.on('inventory_updated', () => {
         toast('Inventory has been updated.', { icon: '🔄' });
         fetchInventory();

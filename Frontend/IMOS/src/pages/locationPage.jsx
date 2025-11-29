@@ -7,6 +7,8 @@ import Modal from '../components/modal.jsx';
 import { FiPlus, FiEdit, FiTrash2, FiSearch, FiArchive } from 'react-icons/fi';
 import io from 'socket.io-client';
 
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+
 const LocationsPage = () => {
   const { layoutId } = useParams();
   const [locations, setLocations] = useState([]);
@@ -50,7 +52,9 @@ const LocationsPage = () => {
   useEffect(() => {
     fetchLocationsAndStats();
 
-    const socket = io('http://localhost:7000');
+    // UPDATE THIS LINE
+    const socket = io(SOCKET_URL);
+
     socket.on('locations_updated', () => {
         toast('Locations have been updated.', { icon: '🔄' });
         fetchLocationsAndStats();

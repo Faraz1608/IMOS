@@ -5,6 +5,8 @@ import { getNotifications, markAllAsRead, deleteNotification } from '../services
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
 
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+
 const NotificationBell = () => {
   const { token, user } = useAuthStore();
   const [notifications, setNotifications] = useState([]);
@@ -26,7 +28,8 @@ const NotificationBell = () => {
     if (token && user?._id) {
       fetchNotifications();
 
-      const socket = io('http://localhost:7000', {
+      // UPDATE THIS LINE: Use SOCKET_URL instead of 'http://localhost:7000'
+      const socket = io(SOCKET_URL, {
         auth: { token },
         query: { userId: user._id }
       });

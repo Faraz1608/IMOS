@@ -7,6 +7,8 @@ import Modal from '../components/modal.jsx';
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi';
 import io from 'socket.io-client';
 
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+
 const SkuPage = () => {
   const [allSkus, setAllSkus] = useState([]);
   const [filteredSkus, setFilteredSkus] = useState([]);
@@ -38,7 +40,9 @@ const SkuPage = () => {
   useEffect(() => {
     fetchAllSkus();
 
-    const socket = io('http://localhost:7000');
+    // UPDATE THIS LINE
+    const socket = io(SOCKET_URL);
+
     socket.on('skus_updated', () => {
       toast('SKU list has been updated.', { icon: '🔄' });
       fetchAllSkus();
