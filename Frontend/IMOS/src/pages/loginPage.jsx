@@ -7,9 +7,9 @@ import { FiMail, FiLock } from 'react-icons/fi';
 
 const ImosLogo = () => (
   <svg height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 12L24 4L44 12V36L24 44L4 36V12Z" stroke="#1E40AF" strokeWidth="4" strokeLinejoin="round"/>
-    <path d="M4 12L24 20L44 12" stroke="#1E40AF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M24 44V20" stroke="#1E40AF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 12L24 4L44 12V36L24 44L4 36V12Z" stroke="#1E40AF" strokeWidth="4" strokeLinejoin="round" />
+    <path d="M4 12L24 20L44 12" stroke="#1E40AF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M24 44V20" stroke="#1E40AF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -43,7 +43,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center"
       style={{ backgroundImage: "url('https://images.unsplash.com/photo-1576185244583-53699c2b48b1?auto=format&fit=crop&w=1920&q=80')" }}
     >
@@ -58,21 +58,21 @@ const LoginPage = () => {
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="relative">
-            <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"/>
-            <input 
-              id="email" name="email" type="email" required 
+            <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+            <input
+              id="email" name="email" type="email" required
               placeholder="Email"
-              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
-              value={formData.email} onChange={handleChange} 
+              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              value={formData.email} onChange={handleChange}
             />
           </div>
           <div className="relative">
-            <FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"/>
-            <input 
-              id="password" name="password" type="password" required 
+            <FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+            <input
+              id="password" name="password" type="password" required
               placeholder="Password"
-              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
-              value={formData.password} onChange={handleChange} 
+              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              value={formData.password} onChange={handleChange}
             />
           </div>
           <div className="flex items-center">
@@ -83,6 +83,17 @@ const LoginPage = () => {
             <button type="submit" className="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Sign in as Operator
             </button>
+          </div>
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <span
+                onClick={() => navigate('/register')}
+                className="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+              >
+                Sign Up
+              </span>
+            </p>
           </div>
         </form>
       </div>
