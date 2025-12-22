@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
@@ -16,6 +17,7 @@ const ImosLogo = () => (
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { login } = useAuthStore();
   const [formData, setFormData] = useState({ email: '', password: '' });
 
@@ -33,12 +35,12 @@ const LoginPage = () => {
       });
 
       login(token, userResponse.data);
-      toast.success('Login successful!');
+      toast.success(t('login.success'));
       navigate('/dashboard');
 
     } catch (error) {
       console.error('Login failed:', error.response?.data);
-      toast.error('Login failed! Please check your credentials.');
+      toast.error(t('login.fail'));
     }
   };
 
@@ -53,7 +55,7 @@ const LoginPage = () => {
             <ImosLogo />
             <h1 className="text-4xl font-bold text-blue-900">IMOS</h1>
           </div>
-          <p className="text-gray-600">Sign in to your account</p>
+          <p className="text-gray-600">{t('login.subtitle')}</p>
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
@@ -61,7 +63,7 @@ const LoginPage = () => {
             <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
             <input
               id="email" name="email" type="email" required
-              placeholder="Email"
+              placeholder={t('login.email_placeholder')}
               className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               value={formData.email} onChange={handleChange}
             />
@@ -70,28 +72,28 @@ const LoginPage = () => {
             <FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
             <input
               id="password" name="password" type="password" required
-              placeholder="Password"
+              placeholder={t('login.password_placeholder')}
               className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               value={formData.password} onChange={handleChange}
             />
           </div>
           <div className="flex items-center">
             <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember Me</label>
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">{t('login.remember_me')}</label>
           </div>
           <div>
             <button type="submit" className="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              Sign in as Operator
+              {t('login.submit')}
             </button>
           </div>
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              {t('login.no_account')}{' '}
               <span
                 onClick={() => navigate('/register')}
                 className="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
               >
-                Sign Up
+                {t('login.signup')}
               </span>
             </p>
           </div>

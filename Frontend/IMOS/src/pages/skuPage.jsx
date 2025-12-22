@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { getSkus, createSku, deleteSku } from '../services/skuService';
@@ -25,6 +26,7 @@ const SkuPage = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const { token } = useAuthStore();
+  const { t } = useTranslation();
 
   const fetchAllSkus = async () => {
     try {
@@ -107,7 +109,7 @@ const SkuPage = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Products/SKUs</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t('sku.title')}</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
             <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
@@ -127,7 +129,7 @@ const SkuPage = () => {
       </div>
 
       <div className="space-y-3">
-        {loading ? <p>Loading...</p> : (
+        {loading ? <p>{t('sku.loading')}</p> : (
           filteredSkus.length > 0 ? (
             filteredSkus.map((sku) => (
               <div key={sku._id} className="p-4 bg-purple-50 rounded-lg flex justify-between items-center border border-purple-100">
@@ -139,51 +141,51 @@ const SkuPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Link to={`/skus/${sku._id}`} className="flex items-center text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100">
-                    <FiEdit size={14} /> Edit
+                    <FiEdit size={14} /> {t('sku.edit')}
                   </Link>
                   <button onClick={() => handleDelete(sku._id)} className="flex items-center text-red-600 px-3 py-1 rounded-lg hover:bg-red-100">
-                    <FiTrash2 size={14} /> Delete
+                    <FiTrash2 size={14} /> {t('sku.delete')}
                   </button>
                 </div>
               </div>
             ))
-          ) : (<p className="text-center text-gray-500 py-8">No SKUs found.</p>)
+          ) : (<p className="text-center text-gray-500 py-8">{t('sku.no_skus')}</p>)
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New SKU">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('sku.create_modal_title')}>
         <form onSubmit={handleAddSku} className="space-y-4 pt-4">
           <div>
-            <label htmlFor="skuCode" className="block text-sm font-medium mb-1">SKU Code</label>
+            <label htmlFor="skuCode" className="block text-sm font-medium mb-1">{t('sku.code_label')}</label>
             <input type="text" name="skuCode" id="skuCode" value={newSkuData.skuCode} onChange={handleInputChange} required className="w-full p-2 border rounded-md" />
           </div>
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">Product Name</label>
+            <label htmlFor="name" className="block text-sm font-medium mb-1">{t('sku.name_label')}</label>
             <input type="text" name="name" id="name" value={newSkuData.name} onChange={handleInputChange} required className="w-full p-2 border rounded-md" />
           </div>
           <div>
-            <label htmlFor="category" className="block text-sm font-medium mb-1">Category</label>
+            <label htmlFor="category" className="block text-sm font-medium mb-1">{t('sku.category_label')}</label>
             <select name="category" id="category" value={newSkuData.category} onChange={handleInputChange} className="w-full p-2 border rounded-md">
-              <option value="Raw Material">Raw Material</option>
-              <option value="Finished Product">Finished Product</option>
-              <option value="Work In Progress">Work In Progress</option>
+              <option value="Raw Material">{t('sku.categories.raw')}</option>
+              <option value="Finished Product">{t('sku.categories.finished')}</option>
+              <option value="Work In Progress">{t('sku.categories.wip')}</option>
             </select>
           </div>
           <fieldset className="border p-2 rounded-md">
-            <legend className="text-sm font-medium px-1">Properties</legend>
+            <legend className="text-sm font-medium px-1">{t('sku.properties_legend')}</legend>
             <div className="space-y-2 p-2">
-              <label className="block text-sm font-medium">Dimensions (cm)</label>
+              <label className="block text-sm font-medium">{t('sku.dimensions_label')}</label>
               <div className="grid grid-cols-3 gap-2">
-                <input type="number" name="dimensions.w" value={newSkuData.properties.dimensions.w} onChange={handleInputChange} placeholder="Width" className="w-full p-2 border rounded-md" />
-                <input type="number" name="dimensions.d" value={newSkuData.properties.dimensions.d} onChange={handleInputChange} placeholder="Depth" className="w-full p-2 border rounded-md" />
-                <input type="number" name="dimensions.h" value={newSkuData.properties.dimensions.h} onChange={handleInputChange} placeholder="Height" className="w-full p-2 border rounded-md" />
+                <input type="number" name="dimensions.w" value={newSkuData.properties.dimensions.w} onChange={handleInputChange} placeholder={t('sku.width_ph')} className="w-full p-2 border rounded-md" />
+                <input type="number" name="dimensions.d" value={newSkuData.properties.dimensions.d} onChange={handleInputChange} placeholder={t('sku.depth_ph')} className="w-full p-2 border rounded-md" />
+                <input type="number" name="dimensions.h" value={newSkuData.properties.dimensions.h} onChange={handleInputChange} placeholder={t('sku.height_ph')} className="w-full p-2 border rounded-md" />
               </div>
-              <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">Weight (Kg)</label>
+              <label htmlFor="properties.weightKg" className="block text-sm font-medium pt-2">{t('sku.weight_label')}</label>
               <input type="number" id="properties.weightKg" name="properties.weightKg" value={newSkuData.properties.weightKg} onChange={handleInputChange} min="0" step="0.01" className="w-full p-2 border rounded-md" />
             </div>
           </fieldset>
           <div className="flex justify-center pt-4">
-            <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">Create New SKU</button>
+            <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">{t('sku.create_submit')}</button>
           </div>
         </form>
       </Modal>

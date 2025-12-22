@@ -1,0 +1,133 @@
+{
+    "app": {
+        "title": "IMOS",
+        "logout": "Logout"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "products": "Products/SKUs",
+        "locations": "Locations",
+        "inventory": "Inventory View",
+        "optimization": "ICC Optimization",
+        "reports": "Reports"
+    },
+    "header": {
+        "user_greeting": "manager_a@company.com"
+    },
+    "login": {
+        "subtitle": "Sign in to your account",
+        "email_placeholder": "Email",
+        "password_placeholder": "Password",
+        "remember_me": "Remember Me",
+        "submit": "Sign in as Operator",
+        "no_account": "Don't have an account?",
+        "signup": "Sign Up",
+        "success": "Login successful!",
+        "fail": "Login failed! Please check your credentials."
+    },
+    "dashboard": {
+        "loading": "Loading dashboard...",
+        "warehouse_utilization": "Warehouse Utilization",
+        "total_skus": "Total SKUs",
+        "pending_dispatches": "Pending Dispatches",
+        "active_users": "Active Users",
+        "layout_utilization_title": "Layout Space Utilization (Max 100%)",
+        "utilization": "Utilization",
+        "no_layout_data": "No layout data available",
+        "recent_transactions": "Recent Transactions",
+        "no_transactions": "No transactions recorded",
+        "quick_access": "Quick Inventory Access"
+    },
+    "sku": {
+        "title": "Products/SKUs",
+        "search_placeholder": "Search by SKU Code or Name",
+        "add_new": "Add New SKU",
+        "loading": "Loading...",
+        "no_skus": "No SKUs found.",
+        "edit": "Edit",
+        "delete": "Delete",
+        "create_modal_title": "Create New SKU",
+        "code_label": "SKU Code",
+        "name_label": "Product Name",
+        "category_label": "Category",
+        "properties_legend": "Properties",
+        "dimensions_label": "Dimensions (cm)",
+        "weight_label": "Weight (Kg)",
+        "width_ph": "Width",
+        "depth_ph": "Depth",
+        "height_ph": "Height",
+        "create_submit": "Create New SKU",
+        "categories": {
+            "raw": "Raw Material",
+            "finished": "Finished Product",
+            "wip": "Work In Progress"
+        }
+    },
+    "inventory": {
+        "title": "Inventory View",
+        "filter_all": "All Categories",
+        "search_placeholder": "Search Inventory",
+        "set_btn": "Set Inventory",
+        "table": {
+            "sku": "SKU",
+            "name": "Product Name",
+            "category": "Category",
+            "location": "Location",
+            "batch": "Batch #",
+            "serial": "Serial #",
+            "quantity": "Quantity",
+            "weight": "Total Weight (Kg)",
+            "actions": "Actions"
+        },
+        "loading": "Loading inventory...",
+        "map_btn": "Map SKU to Location",
+        "adjust_title": "Adjust Quantity for",
+        "current_qty": "Current Quantity",
+        "adjust_by": "Adjust by:",
+        "decrease": "Decrease",
+        "increase": "Increase",
+        "select": {
+            "layout": "-- Choose a Layout --",
+            "location": "-- Choose a Location --",
+            "sku": "-- Choose an SKU --"
+        }
+    },
+    "layout": {
+        "title": "Layouts",
+        "search_placeholder": "Search Layout",
+        "add_btn": "Add Layout",
+        "loading": "Loading...",
+        "no_desc": "No description",
+        "edit": "Edit",
+        "delete": "Delete",
+        "create_modal_title": "Create New Layout",
+        "name_label": "Layout Name",
+        "desc_label": "Description",
+        "dimensions_legend": "Dimensions (m)",
+        "width_ph": "Width",
+        "depth_ph": "Depth",
+        "height_ph": "Height",
+        "create_submit": "Create New Layout",
+        "delete_confirm": "Are you sure you want to delete this layout? This will also delete all associated locations and inventory records.",
+        "edit_title": "Edit Layout",
+        "cancel": "Cancel",
+        "save": "Save Changes"
+    },
+    "location": {
+        "title": "Locations",
+        "search_placeholder": "Search Location",
+        "add_btn": "Add Location",
+        "loading": "Loading...",
+        "dims_label": "Dims:",
+        "max_weight_label": "Max Weight:",
+        "space_util_title": "Space Utilization",
+        "no_locations": "No locations found for this layout.",
+        "create_modal_title": "Create New Location",
+        "edit_modal_title": "Edit Location",
+        "code_label": "Location Code (e.g. A01-R01-S01)",
+        "weight_cap_label": "Weight Capacity (Kg)",
+        "create_submit": "Create New Location",
+        "save_submit": "Save Changes",
+        "delete_confirm": "Are you sure? This will delete the location and all inventory within it."
+    }
+}

@@ -1,0 +1,132 @@
+{
+    "app": {
+        "title": "IMOS",
+        "logout": "बाहेर पडा"
+    },
+    "nav": {
+        "dashboard": "डॅशबोर्ड",
+        "products": "उत्पादने/SKUs",
+        "locations": "स्थाने",
+        "inventory": "इन्व्हेंटरी दृश्य",
+        "optimization": "ICC ऑप्टिमायझेशन",
+        "reports": "रिपोर्ट्स"
+    },
+    "header": {
+        "user_greeting": "manager_a@company.com"
+    },
+    "login": {
+        "subtitle": "आपल्या खात्यात साइन इन करा",
+        "email_placeholder": "ईमेल",
+        "password_placeholder": "पासवर्ड",
+        "remember_me": "माझी आठवण ठेवा",
+        "submit": "ऑपरेटर म्हणून साइन इन करा",
+        "no_account": "खाते नाही?",
+        "signup": "साइन अप करा",
+        "success": "लॉगिन यशस्वी!",
+        "fail": "लॉगिन अयशस्वी! कृपया आपले क्रेडेन्शियल्स तपासा."
+    },
+    "dashboard": {
+        "loading": "डॅशबोर्ड लोड होत आहे...",
+        "warehouse_utilization": "वेअरहाउस वापर",
+        "total_skus": "एकूण SKUs",
+        "pending_dispatches": "प्रलंबित डिस्पॅचेस",
+        "active_users": "सक्रिय वापरकर्ते",
+        "layout_utilization_title": "लेआउट जागा वापर (कमाल 100%)",
+        "utilization": "वापर",
+        "no_layout_data": "लेआउट डेटा उपलब्ध नाही",
+        "recent_transactions": "अलीकडील व्यवहार",
+        "no_transactions": "कोणतेही व्यवहार नोंदवले नाहीत"
+    },
+    "sku": {
+        "title": "उत्पादने/SKUs",
+        "search_placeholder": "SKU कोड किंवा नावाने शोधा",
+        "add_new": "नवीन SKU जोडा",
+        "loading": "लोड होत आहे...",
+        "no_skus": "SKUs आढळले नाहीत.",
+        "edit": "संपादित करा",
+        "delete": "हटवा",
+        "create_modal_title": "नवीन SKU तयार करा",
+        "code_label": "SKU कोड",
+        "name_label": "उत्पादनाचे नाव",
+        "category_label": "श्रेणी",
+        "properties_legend": "गुणधर्म",
+        "dimensions_label": "परिमाण (cm)",
+        "weight_label": "वजन (Kg)",
+        "width_ph": "रुंदी",
+        "depth_ph": "खोली",
+        "height_ph": "उंची",
+        "create_submit": "नवीन SKU तयार करा",
+        "categories": {
+            "raw": "कच्चा माल",
+            "finished": "तयार उत्पादन",
+            "wip": "काम चालू आहे"
+        }
+    },
+    "inventory": {
+        "title": "इन्व्हेंटरी दृश्य",
+        "filter_all": "सर्व श्रेण्या",
+        "search_placeholder": "इन्व्हेंटरी शोधा",
+        "set_btn": "इन्व्हेंटरी सेट करा",
+        "table": {
+            "sku": "SKU",
+            "name": "उत्पादनाचे नाव",
+            "category": "श्रेणी",
+            "location": "स्थान",
+            "batch": "बॅच #",
+            "serial": "सिरीयल #",
+            "quantity": "प्रमाण",
+            "weight": "एकूण वजन (Kg)",
+            "actions": "क्रिया"
+        },
+        "loading": "इन्व्हेंटरी लोड होत आहे...",
+        "map_btn": "SKU ला स्थानाशी जोडा",
+        "adjust_title": "प्रमाण समायोजन करा",
+        "current_qty": "सध्याचे प्रमाण",
+        "adjust_by": "समायोजन:",
+        "decrease": "कमी करा",
+        "increase": "वाढवा",
+        "select": {
+            "layout": "-- लेआउट निवडा --",
+            "location": "-- स्थान निवडा --",
+            "sku": "-- SKU निवडा --"
+        }
+    },
+    "layout": {
+        "title": "लेआउट्स",
+        "search_placeholder": "लेआउट शोधा",
+        "add_btn": "लेआउट जोडा",
+        "loading": "लोड होत आहे...",
+        "no_desc": "वर्णन नाही",
+        "edit": "संपादित करा",
+        "delete": "हटवा",
+        "create_modal_title": "नवीन लेआउट तयार करा",
+        "name_label": "लेआउटचे नाव",
+        "desc_label": "वर्णन",
+        "dimensions_legend": "परिमाण (m)",
+        "width_ph": "रुंदी",
+        "depth_ph": "खोली",
+        "height_ph": "उंची",
+        "create_submit": "नवीन लेआउट तयार करा",
+        "delete_confirm": "आपल्याला खात्री आहे की आपण हा लेआउट हटवू इच्छिता? यामुळे सर्व संबंधित स्थाने आणि इन्व्हेंटरी रेकॉर्ड देखील हटविले जातील.",
+        "edit_title": "लेआउट संपादित करा",
+        "cancel": "रद्द करा",
+        "save": "बदल जतन करा"
+    },
+    "location": {
+        "title": "स्थाने",
+        "search_placeholder": "स्थान शोधा",
+        "add_btn": "स्थान जोडा",
+        "loading": "लोड होत आहे...",
+        "dims_label": "परिमाण:",
+        "max_weight_label": "कमाल वजन:",
+        "space_util_title": "जागा वापर",
+        "no_locations": "या लेआउटसाठी कोणतीही स्थाने आढळली नाहीत.",
+        "create_modal_title": "नवीन स्थान तयार करा",
+        "edit_modal_title": "स्थान संपादित करा",
+        "code_label": "स्थान कोड (उदा. A01-R01-S01)",
+        "weight_cap_label": "वजन क्षमता (Kg)",
+        "create_submit": "नवीन स्थान तयार करा",
+        "save_submit": "बदल जतन करा",
+        "delete_confirm": "तुम्हाला खात्री आहे? यामुळे स्थान आणि त्यामधील सर्व इन्व्हेंटरी हटविली जाईल."
+    }
+}

@@ -1,10 +1,13 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 import useAuthStore from '../store/authStore';
 import { FiGrid, FiPackage, FiLayers, FiBarChart2, FiFileText, FiLogOut, FiUser, FiEye, FiHome } from 'react-icons/fi';
 import NotificationBell from './NotificationBell';
+import LanguageSwitcher from './LanguageSwitcher'; // Import LanguageSwitcher
 
 const AppLayout = () => {
+  const { t } = useTranslation(); // Initialize hook
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -35,12 +38,12 @@ const AppLayout = () => {
         </div>
         <div className="flex flex-col justify-between flex-1 mt-4">
           <nav className="space-y-2 px-4">
-            <NavItem to="/dashboard" icon={<FiGrid />}>Dashboard</NavItem>
-            <NavItem to="/skus" icon={<FiPackage />}>Products/SKUs</NavItem>
-            <NavItem to="/layouts" icon={<FiLayers />}>Locations</NavItem>
-            <NavItem to="/inventory" icon={<FiEye />}>Inventory View</NavItem>
-            <NavItem to="/optimizations" icon={<FiBarChart2 />}>ICC Optimization</NavItem>
-            <NavItem to="/reports" icon={<FiFileText />}>Reports</NavItem>
+            <NavItem to="/dashboard" icon={<FiGrid />}>{t('nav.dashboard')}</NavItem>
+            <NavItem to="/skus" icon={<FiPackage />}>{t('nav.products')}</NavItem>
+            <NavItem to="/layouts" icon={<FiLayers />}>{t('nav.locations')}</NavItem>
+            <NavItem to="/inventory" icon={<FiEye />}>{t('nav.inventory')}</NavItem>
+            <NavItem to="/optimizations" icon={<FiBarChart2 />}>{t('nav.optimization')}</NavItem>
+            <NavItem to="/reports" icon={<FiFileText />}>{t('nav.reports')}</NavItem>
           </nav>
           <nav className="px-4 pb-4">
             <button
@@ -48,7 +51,7 @@ const AppLayout = () => {
               className="flex items-center w-full px-4 py-2.5 text-gray-200 transition-colors duration-200 transform rounded-lg hover:bg-blue-700"
             >
               <FiLogOut />
-              <span className="mx-4 font-medium">Logout</span>
+              <span className="mx-4 font-medium">{t('app.logout')}</span>
             </button>
           </nav>
         </div>
@@ -58,6 +61,9 @@ const AppLayout = () => {
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="flex items-center justify-end h-20 px-10 flex-shrink-0">
           <div className="flex items-center">
+            <div className="mr-6">
+              <LanguageSwitcher />
+            </div>
             <NotificationBell />
             <div className="flex items-center ml-6">
               <div className="ml-3">

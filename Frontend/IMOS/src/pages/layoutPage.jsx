@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore.js';
 import { getLayouts, createLayout, deleteLayout } from '../services/layoutService.js';
@@ -8,7 +9,7 @@ import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi';
 
 const LayoutsPage = () => {
   const [layouts, setLayouts] = useState([]);
-  const [filteredLayouts, setFilteredLayouts]  = useState([]);
+  const [filteredLayouts, setFilteredLayouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState('');
@@ -16,6 +17,7 @@ const LayoutsPage = () => {
   const [newLayoutProps, setNewLayoutProps] = useState({ dimensions: { w: '', d: '', h: '' } }); // --- NEW ---
   const [searchTerm, setSearchTerm] = useState('');
   const { token } = useAuthStore();
+  const { t } = useTranslation();
 
   const fetchLayouts = async () => {
     try {
@@ -75,7 +77,7 @@ const LayoutsPage = () => {
   };
 
   const handleDeleteLayout = async (layoutId) => {
-    if (window.confirm('Are you sure you want to delete this layout? This will also delete all associated locations and inventory records.')) {
+    if (window.confirm(t('layout.delete_confirm'))) {
       try {
         await deleteLayout(layoutId, token);
         toast.success('Layout deleted successfully!');
@@ -88,14 +90,14 @@ const LayoutsPage = () => {
 
   return (
     <div>
-       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Layouts</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">{t('layout.title')}</h1>
         <div className="flex items-center gap-4">
           <div className="relative">
             <FiSearch className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
             <input
               type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search Layout"
+              placeholder={t('layout.search_placeholder')}
               className="w-full max-w-xs p-2 pl-10 border rounded-lg"
             />
           </div>
@@ -103,27 +105,27 @@ const LayoutsPage = () => {
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
           >
-            <FiPlus /> Add Layout
+            <FiPlus /> {t('layout.add_btn')}
           </button>
         </div>
       </div>
 
       <div className="space-y-3">
         {loading ? (
-          <p className="text-center py-8 text-gray-500">Loading...</p>
+          <p className="text-center py-8 text-gray-500">{t('layout.loading')}</p>
         ) : (
           filteredLayouts.map((layout) => (
             <div key={layout._id} className="p-4 bg-purple-50 rounded-lg flex justify-between items-center border border-purple-100">
               <div>
-                 <Link to={`/layouts/${layout._id}/locations`} className="font-bold text-gray-800 hover:underline">{layout.name}</Link>
-                 <p className="text-sm text-gray-600">{layout.description || 'No description'}</p>
+                <Link to={`/layouts/${layout._id}/locations`} className="font-bold text-gray-800 hover:underline">{layout.name}</Link>
+                <p className="text-sm text-gray-600">{layout.description || 'No description'}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Link to={`/layouts/${layout._id}`} className="flex items-center gap-1.5 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 text-sm">
-                  <FiEdit size={14}/> Edit
+                  <FiEdit size={14} /> {t('layout.edit')}
                 </Link>
                 <button onClick={() => handleDeleteLayout(layout._id)} className="flex items-center gap-1.5 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 text-sm">
-                  <FiTrash2 size={14}/> Delete
+                  <FiTrash2 size={14} /> {t('layout.delete')}
                 </button>
               </div>
             </div>
@@ -131,10 +133,10 @@ const LayoutsPage = () => {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Layout">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('layout.create_modal_title')}>
         <form onSubmit={handleAddLayout} className="space-y-4 pt-4">
           <div>
-            <label htmlFor="layoutName" className="block text-sm font-medium mb-1 text-gray-700">Layout Name</label>
+            <label htmlFor="layoutName" className="block text-sm font-medium mb-1 text-gray-700">{t('layout.name_label')}</label>
             <input
               type="text" id="layoutName" value={newLayoutName}
               onChange={(e) => setNewLayoutName(e.target.value)} required
@@ -142,7 +144,7 @@ const LayoutsPage = () => {
             />
           </div>
           <div>
-            <label htmlFor="layoutDesc" className="block text-sm font-medium mb-1 text-gray-700">Description</label>
+            <label htmlFor="layoutDesc" className="block text-sm font-medium mb-1 text-gray-700">{t('layout.desc_label')}</label>
             <textarea
               id="layoutDesc" value={newLayoutDesc}
               onChange={(e) => setNewLayoutDesc(e.target.value)} rows="3"
@@ -151,16 +153,16 @@ const LayoutsPage = () => {
           </div>
           {/* --- NEW --- */}
           <fieldset className="border p-2 rounded-md">
-            <legend className="text-sm font-medium px-1">Dimensions (m)</legend>
+            <legend className="text-sm font-medium px-1">{t('layout.dimensions_legend')}</legend>
             <div className="grid grid-cols-3 gap-2">
-                <input type="number" name="w" value={newLayoutProps.dimensions.w} onChange={handleDimensionChange} placeholder="Width" className="w-full p-2 border rounded-md"/>
-                <input type="number" name="d" value={newLayoutProps.dimensions.d} onChange={handleDimensionChange} placeholder="Depth" className="w-full p-2 border rounded-md"/>
-                <input type="number" name="h" value={newLayoutProps.dimensions.h} onChange={handleDimensionChange} placeholder="Height" className="w-full p-2 border rounded-md"/>
+              <input type="number" name="w" value={newLayoutProps.dimensions.w} onChange={handleDimensionChange} placeholder={t('layout.width_ph')} className="w-full p-2 border rounded-md" />
+              <input type="number" name="d" value={newLayoutProps.dimensions.d} onChange={handleDimensionChange} placeholder={t('layout.depth_ph')} className="w-full p-2 border rounded-md" />
+              <input type="number" name="h" value={newLayoutProps.dimensions.h} onChange={handleDimensionChange} placeholder={t('layout.height_ph')} className="w-full p-2 border rounded-md" />
             </div>
           </fieldset>
           <div className="flex justify-center pt-4">
             <button type="submit" className="w-full px-4 py-2.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900">
-              Create New Layout
+              {t('layout.create_submit')}
             </button>
           </div>
         </form>
