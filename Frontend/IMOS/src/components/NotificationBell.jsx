@@ -45,6 +45,19 @@ const NotificationBell = () => {
     }
   }, [token, user]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   /* 
    * Updated Logic: 
    * Removed auto-mark-as-read on open. 
