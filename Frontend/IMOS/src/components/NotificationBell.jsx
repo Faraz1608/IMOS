@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiBell } from 'react-icons/fi';
 import useAuthStore from '../store/authStore';
-import { getNotifications, markAllAsRead, deleteNotification } from '../services/notificationService';
+import { getNotifications, markAllAsRead, deleteNotification, deleteAllNotifications } from '../services/notificationService';
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
 
@@ -45,15 +45,34 @@ const NotificationBell = () => {
     }
   }, [token, user]);
 
-  const handleToggle = async () => {
+  /* 
+   * Updated Logic: 
+   * Removed auto-mark-as-read on open. 
+   * Now requires user action to mark all as read.
+   */
+  const handleToggle = () => {
     setIsOpen(!isOpen);
-    if (!isOpen && unreadCount > 0) {
-      try {
-        await markAllAsRead();
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      } catch (error) {
-        console.error('Failed to mark notifications as read');
-      }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (unreadCount === 0) return;
+    try {
+      await markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      toast.success('All notifications marked as read', { position: 'bottom-right' });
+    } catch (error) {
+      toast.error('Failed to mark all as read');
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (notifications.length === 0) return;
+    try {
+      await deleteAllNotifications();
+      setNotifications([]); // Clear local state
+      toast.success('All notifications deleted', { position: 'bottom-right' });
+    } catch (error) {
+      toast.error('Failed to delete notifications');
     }
   };
 
@@ -79,7 +98,27 @@ const NotificationBell = () => {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-20">
-          <div className="p-4 font-bold border-b">Notifications</div>
+          <div className="p-4 font-bold border-b flex justify-between items-center bg-gray-50">
+            <span>Notifications</span>
+            <div className="flex space-x-2 text-xs font-normal">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  Mark all read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleDeleteAll}
+                  className="text-red-500 hover:text-red-700 hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+          </div>
           <div className="max-h-96 overflow-y-auto">
             {notifications.length > 0 ? (
               notifications.map(notification => (

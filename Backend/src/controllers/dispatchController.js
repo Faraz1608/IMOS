@@ -1,5 +1,6 @@
 import Dispatch from '../models/Dispatch.js';
 import Notification from '../models/Notification.js';
+import { createAndEmitNotification } from '../utils/notificationUtils.js';
 
 // @desc    Create a new dispatch order
 // @route   POST /api/dispatches
@@ -18,12 +19,11 @@ export const createDispatch = async (req, res) => {
     await dispatch.save();
 
     // --- Create and Emit Notification ---
-    const notification = await Notification.create({
+    await createAndEmitNotification(req.io, {
       user: req.user.id,
       message: `New dispatch order created: ${orderId}`,
       link: `/dispatches`,
     });
-    req.io.to(req.user.id).emit('new_notification', notification);
 
     res.status(201).json(dispatch);
   } catch (error) {
@@ -44,7 +44,7 @@ export const getDispatches = async (req, res) => {
       .sort({ createdAt: -1 });
 
     // FIX: Filter out any dispatches that have missing/deleted SKU references
-    const filteredDispatches = dispatches.filter(dispatch => 
+    const filteredDispatches = dispatches.filter(dispatch =>
       dispatch.items.every(item => item.sku)
     );
 
@@ -69,12 +69,11 @@ export const updateDispatchStatus = async (req, res) => {
     await dispatch.save();
 
     // --- Create and Emit Notification ---
-    const notification = await Notification.create({
+    await createAndEmitNotification(req.io, {
       user: req.user.id,
       message: `Dispatch ${dispatch.orderId} status updated to: ${status}`,
       link: `/dispatches`,
     });
-    req.io.to(req.user.id).emit('new_notification', notification);
 
     res.status(200).json(dispatch);
   } catch (error) {

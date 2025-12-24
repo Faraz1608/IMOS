@@ -5,11 +5,12 @@ import Location from '../models/Location.js';
 import Layout from '../models/Layout.js';
 import Sku from '../models/Sku.js';
 import Notification from '../models/Notification.js';
+import { createAndEmitNotification } from '../utils/notificationUtils.js';
 
 
 // Helper function to calculate volume
 const getVolumeCm3 = (dimensions) => {
-    return (dimensions?.w || 0) * (dimensions?.d || 0) * (dimensions?.h || 0);
+  return (dimensions?.w || 0) * (dimensions?.d || 0) * (dimensions?.h || 0);
 };
 // Get all inventory in the system
 export const getInventory = async (req, res) => {
@@ -50,20 +51,20 @@ export const setInventory = async (req, res) => {
     const locationCapacityCm3 = getVolumeCm3(location.properties?.dimensions) * 1000000;
     let currentOccupiedVolumeCm3 = 0;
     inventoryInLocation.forEach(item => {
-        if(item.sku) currentOccupiedVolumeCm3 += getVolumeCm3(item.sku.properties?.dimensions) * item.quantity;
+      if (item.sku) currentOccupiedVolumeCm3 += getVolumeCm3(item.sku.properties?.dimensions) * item.quantity;
     });
     const newVolumeCm3 = getVolumeCm3(newSku.properties?.dimensions) * Number(quantity);
     if (locationCapacityCm3 > 0 && (currentOccupiedVolumeCm3 + newVolumeCm3) > locationCapacityCm3) {
-        return res.status(400).json({ message: `Exceeds location's volumetric capacity.` });
+      return res.status(400).json({ message: `Exceeds location's volumetric capacity.` });
     }
-    
+
     let inventory;
     const existingInventory = await Inventory.findOne({
-        sku: skuId,
-        location: locationId,
-        // Match exactly what is sent (even if it's an empty string)
-        batchNumber: batchNumber, 
-        serialNumber: serialNumber
+      sku: skuId,
+      location: locationId,
+      // Match exactly what is sent (even if it's an empty string)
+      batchNumber: batchNumber,
+      serialNumber: serialNumber
     });
 
     if (existingInventory) {
@@ -79,30 +80,30 @@ export const setInventory = async (req, res) => {
         createdBy: req.user.id
       });
     }
-    
+
     await Transaction.create({ sku: skuId, type: 'GR', quantity: quantity, user: req.user.id });
     await InventoryMovement.create({ sku: skuId, type: 'GR', quantity: quantity, user: req.user.id });
-    
+
     req.io.emit('inventory_updated');
 
     // Low Stock Alert
     if (inventory.quantity < 10) {
-        const skuCode = newSku.skuCode;
-        const locCode = location.locationCode;
-        await Notification.create({
-            user: null,
-            message: `Low Stock Alert: SKU ${skuCode} is down to ${inventory.quantity} units in ${locCode}.`,
-            link: '/inventory'
-        });
+      const skuCode = newSku.skuCode;
+      const locCode = location.locationCode;
+      await createAndEmitNotification(req.io, {
+        user: null,
+        message: `Low Stock Alert: SKU ${skuCode} is down to ${inventory.quantity} units in ${locCode}.`,
+        link: '/inventory'
+      });
     }
 
     // New Stock Alert (Global)
     if (Number(quantity) > 0) {
-        await Notification.create({
-            user: null,
-            message: `New stock added: ${Number(quantity)} units of ${newSku.name} (${newSku.skuCode}) added to ${location.locationCode}.`,
-            link: '/inventory'
-        });
+      await createAndEmitNotification(req.io, {
+        user: null,
+        message: `New stock added: ${Number(quantity)} units of ${newSku.name} (${newSku.skuCode}) added to ${location.locationCode}.`,
+        link: '/inventory'
+      });
     }
 
     res.status(200).json(inventory);
@@ -126,24 +127,24 @@ export const adjustInventory = async (req, res) => {
     if (!inventoryItem.sku || !inventoryItem.location) {
       return res.status(404).json({ message: 'Associated SKU or Location has been deleted.' });
     }
-    
-    const quantityChange = Number(quantity) - inventoryItem.quantity;
-    
-    if (quantityChange > 0) {
-        const location = inventoryItem.location;
-        const inventoryInLocation = await Inventory.find({ location: location._id }).populate('sku');
 
-        const locationCapacityCm3 = getVolumeCm3(location.properties?.dimensions) * 1000000;
-        let currentOccupiedVolumeCm3 = 0;
-        inventoryInLocation.forEach(item => {
-            if(item.sku) currentOccupiedVolumeCm3 += getVolumeCm3(item.sku.properties?.dimensions) * item.quantity;
-        });
-        const volumeChangeCm3 = getVolumeCm3(inventoryItem.sku.properties?.dimensions) * quantityChange;
-        if (locationCapacityCm3 > 0 && (currentOccupiedVolumeCm3 + volumeChangeCm3) > locationCapacityCm3) {
-            return res.status(400).json({ message: `Adjustment exceeds location's volumetric capacity.` });
-        }
+    const quantityChange = Number(quantity) - inventoryItem.quantity;
+
+    if (quantityChange > 0) {
+      const location = inventoryItem.location;
+      const inventoryInLocation = await Inventory.find({ location: location._id }).populate('sku');
+
+      const locationCapacityCm3 = getVolumeCm3(location.properties?.dimensions) * 1000000;
+      let currentOccupiedVolumeCm3 = 0;
+      inventoryInLocation.forEach(item => {
+        if (item.sku) currentOccupiedVolumeCm3 += getVolumeCm3(item.sku.properties?.dimensions) * item.quantity;
+      });
+      const volumeChangeCm3 = getVolumeCm3(inventoryItem.sku.properties?.dimensions) * quantityChange;
+      if (locationCapacityCm3 > 0 && (currentOccupiedVolumeCm3 + volumeChangeCm3) > locationCapacityCm3) {
+        return res.status(400).json({ message: `Adjustment exceeds location's volumetric capacity.` });
+      }
     }
-    
+
     inventoryItem.quantity = Number(quantity);
     await inventoryItem.save();
 
@@ -157,25 +158,25 @@ export const adjustInventory = async (req, res) => {
 
     // Low Stock Alert
     if (inventoryItem.quantity < 10) {
-        await Notification.create({
-            user: null,
-            message: `Low Stock Alert: SKU ${inventoryItem.sku.skuCode} is down to ${inventoryItem.quantity} units in ${inventoryItem.location.locationCode}.`,
-            link: '/inventory'
-        });
+      await createAndEmitNotification(req.io, {
+        user: null,
+        message: `Low Stock Alert: SKU ${inventoryItem.sku.skuCode} is down to ${inventoryItem.quantity} units in ${inventoryItem.location.locationCode}.`,
+        link: '/inventory'
+      });
     }
 
     // Quantity Change Alert (Global)
     if (quantityChange !== 0) {
-        const action = quantityChange > 0 ? 'added' : 'reduced';
-        const msg = quantityChange > 0 
-            ? `Stock added: ${Math.abs(quantityChange)} units of ${inventoryItem.sku.name} added to ${inventoryItem.location.locationCode}.`
-            : `Stock reduced: ${Math.abs(quantityChange)} units of ${inventoryItem.sku.name} removed from ${inventoryItem.location.locationCode}.`;
-            
-        await Notification.create({
-            user: null,
-            message: msg,
-            link: '/inventory'
-        });
+      const action = quantityChange > 0 ? 'added' : 'reduced';
+      const msg = quantityChange > 0
+        ? `Stock added: ${Math.abs(quantityChange)} units of ${inventoryItem.sku.name} added to ${inventoryItem.location.locationCode}.`
+        : `Stock reduced: ${Math.abs(quantityChange)} units of ${inventoryItem.sku.name} removed from ${inventoryItem.location.locationCode}.`;
+
+      await createAndEmitNotification(req.io, {
+        user: null,
+        message: msg,
+        link: '/inventory'
+      });
     }
 
     res.status(200).json(inventoryItem);

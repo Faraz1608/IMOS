@@ -9,10 +9,10 @@ export const getNotifications = async (req, res) => {
     const notifications = await Notification.find({
       $and: [
         {
-            $or: [{ user: req.user.id }, { user: null }]
+          $or: [{ user: req.user.id }, { user: null }]
         },
         {
-            deletedBy: { $ne: req.user.id }
+          deletedBy: { $ne: req.user.id }
         }
       ]
     })
@@ -35,7 +35,7 @@ export const markAllAsRead = async (req, res) => {
     // We will keep it as is for personal, but for global it's shared state which is tricky.
     // Assuming 'read' is mostly for the single user case.
     await Notification.updateMany(
-      { user: req.user.id, read: false }, 
+      { user: req.user.id, read: false },
       { read: true }
     );
 
@@ -48,30 +48,60 @@ export const markAllAsRead = async (req, res) => {
 // @desc    Delete a notification (Smart Delete)
 // @route   DELETE /api/notifications/:id
 export const deleteNotification = async (req, res) => {
-    try {
-        const notification = await Notification.findById(req.params.id);
+  try {
+    const notification = await Notification.findById(req.params.id);
 
-        if (!notification) {
-            return res.status(404).json({ message: 'Notification not found' });
-        }
-
-        // If it's a personal notification, delete it permanently
-        if (notification.user && notification.user.toString() === req.user.id) {
-            await notification.deleteOne();
-            return res.status(200).json({ message: 'Notification deleted' });
-        }
-
-        // If it's a global notification, add user to deletedBy
-        if (!notification.user) {
-            if (!notification.deletedBy.includes(req.user.id)) {
-                notification.deletedBy.push(req.user.id);
-                await notification.save();
-            }
-            return res.status(200).json({ message: 'Notification removed' });
-        }
-
-        return res.status(401).json({ message: 'Not authorized' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
     }
+
+    // If it's a personal notification, delete it permanently
+    if (notification.user && notification.user.toString() === req.user.id) {
+      await notification.deleteOne();
+      return res.status(200).json({ message: 'Notification deleted' });
+    }
+
+    // If it's a global notification, add user to deletedBy
+    if (!notification.user) {
+      if (!notification.deletedBy.includes(req.user.id)) {
+        notification.deletedBy.push(req.user.id);
+        await notification.save();
+      }
+      return res.status(200).json({ message: 'Notification removed' });
+    }
+
+    return res.status(401).json({ message: 'Not authorized' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Delete ALL notifications for the logged-in user
+// @route   DELETE /api/notifications
+export const deleteAllNotifications = async (req, res) => {
+  try {
+    // 1. Delete all personal notifications
+    await Notification.deleteMany({ user: req.user.id });
+
+    // 2. Mark all global notifications as deleted by this user
+    // Find all global notifications (user: null) where this user is NOT already in deletedBy
+    const globalNotifications = await Notification.find({
+      user: null,
+      deletedBy: { $ne: req.user.id }
+    });
+
+    // Update them to include this user in deletedBy
+    if (globalNotifications.length > 0) {
+      const updates = globalNotifications.map(notification => {
+        notification.deletedBy.push(req.user.id);
+        return notification.save();
+      });
+      await Promise.all(updates);
+    }
+
+    res.status(200).json({ message: 'All notifications cleared.' });
+  } catch (error) {
+    console.error('Delete all error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
 };
