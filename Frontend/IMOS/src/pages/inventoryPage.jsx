@@ -215,9 +215,9 @@ const InventoryPage = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
+      <div className="overflow-auto bg-white rounded-lg shadow max-h-[calc(100vh-220px)]">
         <table className="min-w-full">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-blue-900 text-white">
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">{t('inventory.table.sku')}</th>
               <th className="px-6 py-3 text-left text-sm font-semibold uppercase">{t('inventory.table.name')}</th>

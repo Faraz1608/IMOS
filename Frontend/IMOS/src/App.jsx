@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import LoginPage from './pages/loginPage.jsx';
 import DashboardPage from './pages/dashboardPage.jsx';
@@ -18,42 +18,56 @@ import AdminRoute from './components/AdminRoute.jsx';
 import UserManagementPage from './pages/userManagementPage.jsx';
 import DemandForecastingPage from './pages/demandForecasting.jsx'; // 1. Import the new page
 
-function App() {
+import { LoadingProvider, useLoading } from './context/LoadingContext.jsx';
+import Spinner from './components/Spinner.jsx';
 
+// Inner component to access context
+const AppContent = () => {
+  const { isLoading } = useLoading();
   return (
+    <>
+      {isLoading && <Spinner />}
+      <Router>
+        <Toaster position="top-right" />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-    <Router>
-      <Toaster position="top-right" />
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="layouts" element={<LayoutsPage />} />
-          <Route path="layouts/:id" element={<LayoutDetailPage />} />
-          <Route path="layouts/:layoutId/locations" element={<LocationsPage />} />
-          <Route path="skus" element={<SkuPage />} />
-          <Route path="skus/:id" element={<SkuDetailPage />} />
-          <Route path="inventory" element={<InventoryPage />} />
-          <Route path="optimizations" element={<OptimizationsPage />} />
-          <Route path="forecasting" element={<DemandForecastingPage />} />
-          <Route path="search" element={<SearchPage />} />
-          <Route path="reports" element={<ReportsPage />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route
-            path="admin/users"
-            element={<AdminRoute><UserManagementPage /></AdminRoute>}
-          />
-        </Route>
-      </Routes>
-    </Router>
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="layouts" element={<LayoutsPage />} />
+            <Route path="layouts/:id" element={<LayoutDetailPage />} />
+            <Route path="layouts/:layoutId/locations" element={<LocationsPage />} />
+            <Route path="skus" element={<SkuPage />} />
+            <Route path="skus/:id" element={<SkuDetailPage />} />
+            <Route path="inventory" element={<InventoryPage />} />
+            <Route path="optimizations" element={<OptimizationsPage />} />
+            <Route path="forecasting" element={<DemandForecastingPage />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route
+              path="admin/users"
+              element={<AdminRoute><UserManagementPage /></AdminRoute>}
+            />
+          </Route>
+        </Routes>
+      </Router>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <LoadingProvider>
+      <AppContent />
+    </LoadingProvider>
   );
 }
 

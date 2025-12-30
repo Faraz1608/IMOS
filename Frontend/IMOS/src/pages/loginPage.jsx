@@ -30,12 +30,10 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       const response = await api.post('/auth/login', formData);
-      const { token } = response.data;
-      const userResponse = await api.get('/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { token, user } = response.data;
 
-      login(token, userResponse.data);
+      // No longer need separate /auth/me call
+      login(token, user);
       toast.success(t('login.success'));
       navigate('/dashboard');
 

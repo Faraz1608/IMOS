@@ -51,7 +51,7 @@ export const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    
+
     // JWT payload contains minimal info (id + role)
     const payload = {
       user: { id: user.id, role: user.role },
@@ -64,7 +64,18 @@ export const loginUser = async (req, res) => {
       { expiresIn: '24h' },
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        // Return token AND user data (excluding password)
+        const userPayload = {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        };
+
+        res.json({
+          token,
+          user: userPayload
+        });
       }
     );
   } catch (error) {
