@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { FiMail, FiLock } from 'react-icons/fi';
+import PasswordInput from '../components/PasswordInput';
 
 const ImosLogo = () => (
   <svg height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -68,15 +69,14 @@ const LoginPage = () => {
               value={formData.email} onChange={handleChange}
             />
           </div>
-          <div className="relative">
-            <FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-            <input
-              id="password" name="password" type="password" required
-              placeholder={t('login.password_placeholder')}
-              className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-              value={formData.password} onChange={handleChange}
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder={t('login.password_placeholder')}
+            leftIcon={<FiLock />}
+          />
           <div className="flex items-center">
             <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">{t('login.remember_me')}</label>

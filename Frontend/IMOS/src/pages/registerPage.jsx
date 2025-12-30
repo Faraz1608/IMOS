@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { register } from '../services/authService';
+import PasswordInput from '../components/PasswordInput';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -41,7 +42,15 @@ const RegisterPage = () => {
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-            <input id="password" name="password" type="password" required value={formData.password} onChange={handleChange} className="w-full px-3 py-2 mt-1 border rounded-md" />
+            <PasswordInput
+              id="password"
+              name="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              placeholder=""
+              className="mt-1"
+            />
           </div>
           <div>
             <button type="submit" className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Register</button>
