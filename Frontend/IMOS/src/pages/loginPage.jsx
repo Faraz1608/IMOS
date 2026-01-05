@@ -20,6 +20,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { login } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleChange = (e) => {
@@ -28,6 +29,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true); // Start loading
     try {
       const response = await api.post('/auth/login', formData);
       const { token, user } = response.data;
@@ -40,6 +42,8 @@ const LoginPage = () => {
     } catch (error) {
       console.error('Login failed:', error.response?.data);
       toast.error(t('login.fail'));
+    } finally {
+      setIsLoading(false); // Stop loading regardless of success/fail
     }
   };
 
@@ -65,6 +69,7 @@ const LoginPage = () => {
               placeholder={t('login.email_placeholder')}
               className="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               value={formData.email} onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
           <PasswordInput
@@ -74,14 +79,19 @@ const LoginPage = () => {
             onChange={handleChange}
             placeholder={t('login.password_placeholder')}
             leftIcon={<FiLock />}
+            disabled={isLoading}
           />
           <div className="flex items-center">
             <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">{t('login.remember_me')}</label>
           </div>
           <div>
-            <button type="submit" className="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              {t('login.submit')}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 px-4 text-sm font-semibold rounded-lg text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? 'Signing in...' : t('login.submit')}
             </button>
           </div>
           <div className="text-center mt-4">

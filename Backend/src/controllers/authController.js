@@ -41,7 +41,9 @@ export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    // Use lean() to get a plain JavaScript object, avoiding Mongoose document overhead (faster)
+    const user = await User.findOne({ email }).lean();
+
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -54,7 +56,7 @@ export const loginUser = async (req, res) => {
 
     // JWT payload contains minimal info (id + role)
     const payload = {
-      user: { id: user.id, role: user.role },
+      user: { id: user._id, role: user.role },
     };
 
     // Sign token with 24h expiry
@@ -79,6 +81,7 @@ export const loginUser = async (req, res) => {
       }
     );
   } catch (error) {
+    console.error('Login Error:', error);
     res.status(500).send('Server error');
   }
 };
